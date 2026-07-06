@@ -1242,20 +1242,15 @@
       
       toggleLoading(true, t("verifying"));
       
-      if (typeof google === 'undefined' || !google.script) {
-         isAdminUnlocked = true;
-         adminPasscodeValue = "dummy";
-         document.getElementById("adminAuthBox").style.display = "none";
-         document.getElementById("adminDashboardBox").style.display = "block";
-         renderAdminGrid();
-         toggleLoading(false);
-         return;
-      }
-
-      google.script.run
-        .withSuccessHandler(function(isValid) {
+      if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'verify', passcode: inputVal })
+        })
+        .then(res => res.json())
+        .then(data => {
           toggleLoading(false);
-          if (isValid) {
+          if (data.isValid) {
             isAdminUnlocked = true;
             adminPasscodeValue = inputVal;
             document.getElementById("adminAuthBox").style.display = "none";
@@ -1266,11 +1261,39 @@
             alert(t("err_passcode"));
           }
         })
-        .withFailureHandler(function(err) {
+        .catch(err => {
           toggleLoading(false);
           alert("Auth Error: " + err.message);
-        })
-        .verifyAdmin(inputVal);
+        });
+      } else if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(function(isValid) {
+            toggleLoading(false);
+            if (isValid) {
+              isAdminUnlocked = true;
+              adminPasscodeValue = inputVal;
+              document.getElementById("adminAuthBox").style.display = "none";
+              document.getElementById("adminDashboardBox").style.display = "block";
+              renderAdminGrid();
+              showToast(t("toast_admin"));
+            } else {
+              alert(t("err_passcode"));
+            }
+          })
+          .withFailureHandler(function(err) {
+            toggleLoading(false);
+            alert("Auth Error: " + err.message);
+          })
+          .verifyAdmin(inputVal);
+      } else {
+         toggleLoading(false);
+         // Local fallback for UI testing without backend
+         isAdminUnlocked = true;
+         adminPasscodeValue = "dummy";
+         document.getElementById("adminAuthBox").style.display = "none";
+         document.getElementById("adminDashboardBox").style.display = "block";
+         renderAdminGrid();
+      }
     }
     
     // Helper to determine if text is a URL
