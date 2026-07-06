@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project & Systems Hub</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    /* Premium CSS Variables & Custom Theme System */
+    :root {
+      --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+      /* Dark Theme (Default) */
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-card: rgba(22, 30, 49, 0.7);
+      --bg-card-hover: rgba(30, 41, 67, 0.9);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.16);
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      
+      /* Gradients & Accents */
+      --primary: #6366f1;
+      --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      --accent: #06b6d4;
+      --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      --glow-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+      
+      /* Status Colors */
+      --color-active: #10b981;
+      --color-maintenance: #f59e0b;
+      --color-archived: #ef4444;
+      --bg-active: rgba(16, 185, 129, 0.1);
+      --bg-maintenance: rgba(245, 158, 11, 0.1);
+      --bg-archived: rgba(239, 68, 68, 0.1);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.8);
+      --bg-card-hover: rgba(255, 255, 255, 0.95);
+      --border-color: rgba(0, 0, 0, 0.06);
+      --border-hover: rgba(0, 0, 0, 0.12);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      
+      --primary: #4f46e5;
+      --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      --accent: #0891b2;
+      --accent-gradient: linear-gradient(135deg, #0891b2 0%, #2563eb 100%);
+      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+      --glow-shadow: 0 0 25px rgba(79, 70, 229, 0.1);
+      
+      --bg-active: rgba(16, 185, 129, 0.12);
+      --bg-maintenance: rgba(245, 158, 11, 0.12);
+      --bg-archived: rgba(239, 68, 68, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* Decorative Glows */
+    .glow-blob {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: var(--primary-gradient);
+      filter: blur(140px);
+      opacity: 0.15;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .blob-1 { top: -100px; right: -50px; }
+    .blob-2 { bottom: -100px; left: -100px; }
+
+    /* Layout Wrapper */
+    .app-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header Styling */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+      box-shadow: var(--glow-shadow);
+    }
+
+    .brand-title h1 {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.625rem 1.25rem;
+      border-radius: 12px;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid transparent;
+      outline: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-primary {
+      background: var(--primary-gradient);
+      color: white;
+      box-shadow: var(--glow-shadow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-icon {
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 12px;
+    }
+
+    /* Navigation Bar (Submitter vs Admin Screens) */
+    .nav-tabs {
+      display: flex;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      padding: 0.35rem;
+      border-radius: 14px;
+      gap: 0.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .nav-tab {
+      flex: 1;
+      padding: 0.75rem 1.25rem;
+      text-align: center;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .nav-tab.active {
+      background: var(--primary-gradient);
+      color: white;
+      box-shadow: var(--glow-shadow);
+    }
+
+    /* Search & Filter Section */
+    .control-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .search-wrapper {
+      position: relative;
+      margin-bottom: 1.25rem;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 1.25rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 0.875rem 1.25rem 0.875rem 3.25rem;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .filters-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .category-tabs {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .category-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .category-tab:hover {
+      color: var(--text-primary);
+      background: var(--bg-card);
+    }
+
+    .category-tab.active {
+      color: white;
+      background: var(--primary-gradient);
+    }
+
+    /* Grid Layout */
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* Cards */
+    .project-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 260px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(8px);
+      box-shadow: var(--card-shadow);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .project-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--primary-gradient);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .project-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+
+    .project-card:hover::before {
+      opacity: 1;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(99, 102, 241, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-size: 1.25rem;
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 0.25rem 0.625rem;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+
+    .status-badge.active {
+      color: var(--color-active);
+      background: var(--bg-active);
+    }
+
+    .status-badge.maintenance {
+      color: var(--color-maintenance);
+      background: var(--bg-maintenance);
+    }
+
+    .status-badge.archived {
+      color: var(--color-archived);
+      background: var(--bg-archived);
+    }
+
+    .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-submitter {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .card-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: auto;
+    }
+
+    .card-tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .card-category {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--border-hover);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .action-btn.edit-btn:hover {
+      color: var(--primary);
+    }
+
+    .action-btn.open-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+    }
+
+    .action-btn.open-btn:hover {
+      background: var(--primary-gradient);
+      transform: scale(1.05);
+    }
+
+    /* Submitter Uploader Form CSS */
+    .submitter-form-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 2.5rem;
+      max-width: 680px;
+      margin: 0 auto 3rem auto;
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .panel-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .panel-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+    }
+
+    /* Form Styles */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--primary);
+    }
+
+    /* Passcode prompt overlay */
+    .passcode-wrapper {
+      text-align: center;
+      padding: 4rem 2rem;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* Spinner Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 14, 26, 0.8);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .loading-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-left-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--primary);
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 1000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      transform: scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.open .modal-box {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.25rem;
+      cursor: pointer;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      grid-column: 1 / -1;
+      color: var(--text-secondary);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .app-container {
+        padding: 1.5rem 1rem;
+      }
+      header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .header-actions {
+        justify-content: flex-start;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Decorative Blobs -->
+  <div class="glow-blob blob-1"></div>
+  <div class="glow-blob blob-2"></div>
+
+  <!-- Loading Indicator -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <p style="color: var(--text-primary); font-weight: 600;" id="loadingText">Connecting to database...</p>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header>
+      <div class="brand-section">
+        <div class="brand-logo">
+          <i class="fa-solid fa-link"></i>
+        </div>
+        <div class="brand-title">
+          <h1 data-i18n="title">Project & Systems Hub</h1>
+          <p data-i18n="subtitle">Lab 305 Unified Environments Directory</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" id="langToggleBtn" title="Toggle Language" style="font-weight: 800; padding: 0.5rem 1rem;">JP</button>
+        <button class="btn btn-secondary btn-icon" id="themeToggleBtn" title="Toggle Theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Two Screen / View Switch Navigation -->
+    <div class="nav-tabs">
+      <div class="nav-tab active" id="tabSubmitter" onclick="switchView('submitter')" data-i18n="tab_submit"><i class="fa-solid fa-cloud-arrow-up"></i> Upload / Update Work</div>
+      <div class="nav-tab" id="tabAdmin" onclick="switchView('admin')" data-i18n="tab_admin"><i class="fa-solid fa-user-shield"></i> Admin Portal</div>
+    </div>
+
+    <!-- VIEW 1: Submitter / Upload Screen -->
+    <div id="submitterView" class="view-panel">
+      <!-- Submission Form -->
+      <div class="submitter-form-panel">
+        <div class="panel-title" data-i18n="panel_title"><i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i> Publish Your System</div>
+        <div class="panel-subtitle" data-i18n="panel_sub">Upload your final project link, system details, and tag categories. If it already exists, matching the Title will update the existing entry.</div>
+        
+        <form id="submissionForm">
+          <div id="dynamicFormFields"></div>
+          <div style="text-align: right; margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" data-i18n="btn_publish"><i class="fa-solid fa-paper-plane"></i> Publish Final Link</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Links list below form -->
+      <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 1.5rem; text-align: center;" data-i18n="explore_title">Explore Systems Directory</h2>
+      <div class="control-panel">
+        <div class="search-wrapper">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" class="search-input" id="subSearchInput" placeholder="Search uploaded projects, tags, environments..." data-i18n="search_sub">
+        </div>
+      </div>
+      <div class="project-grid" id="subProjectGrid">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+
+    <!-- VIEW 2: Admin Screen -->
+    <div id="adminView" class="view-panel" style="display: none;">
+      <!-- Passcode validation screen if not validated -->
+      <div id="adminAuthBox" class="passcode-wrapper">
+        <i class="fa-solid fa-lock" style="font-size: 3rem; margin-bottom: 1.5rem; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+        <h3 style="font-family: var(--font-display); margin-bottom: 1rem;" data-i18n="admin_req">Administrator Passcode Required</h3>
+        <div class="form-group">
+          <input type="password" class="form-input" id="adminPasscodeInput" placeholder="Enter Admin Passcode" data-i18n="admin_ph" style="text-align: center;">
+        </div>
+        <button class="btn btn-primary" onclick="attemptAdminLogin()" style="width: 100%; justify-content: center;" data-i18n="btn_unlock">Unlock Admin Mode</button>
+      </div>
+
+      <!-- Live Admin Dashboard (shown only after validation) -->
+      <div id="adminDashboardBox" style="display: none;">
+        <div class="control-panel">
+          <div class="search-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" class="search-input" id="adminSearchInput" placeholder="Search and manage all systems..." data-i18n="search_admin">
+          </div>
+          <div class="filters-wrapper">
+            <div class="category-tabs" id="adminCategoryTabs">
+              <button class="category-tab active" data-category="all" data-i18n="all_sys">All Systems</button>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);" id="adminResultsCounter">
+              0 systems
+            </div>
+          </div>
+        </div>
+
+        <div class="project-grid" id="adminProjectGrid">
+          <!-- Injected by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <i class="fa-solid fa-circle-check" style="color: var(--primary);"></i>
+    <span id="toastMsg">Action completed!</span>
+  </div>
+
+  <!-- Admin Edit Dialog Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="edit_title">Edit System</h3>
+        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <form id="editForm">
+        <input type="hidden" id="editId">
+        <div id="dynamicEditFields"></div>
+        
+        <!-- Edit Tracking Fields -->
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
+        <div class="form-group">
+          <label class="form-label" data-i18n="edit_who">Your Name</label>
+          <input type="text" class="form-input" id="editWhoInput" placeholder="Enter your name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="edit_what">Change Summary</label>
+          <input type="text" class="form-input" id="editWhatInput" placeholder="What did you change? (Optional)">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeEditModal()" data-i18n="btn_cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="btn_save">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Details Modal -->
+  <div class="modal-overlay" id="viewModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="view_title">System Details</h3>
+        <button class="modal-close" onclick="closeViewModal()">&times;</button>
+      </div>
+      <div id="viewModalContent" style="font-size: 0.95rem; line-height: 1.6;">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeViewModal()" data-i18n="btn_close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- VERCEL DEPLOYMENT CONFIGURATION ---
+    // 1. Deploy Code.gs as a Web App in Google Apps Script (Execute as: Me, Access: Anyone)
+    // 2. Paste the provided Web App URL here:
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxE2S-NpLpYIEfbyodxLNT7dF5XHfJ7YtCWusRXyPiHeYCuk6uudFxpr9PUYgT1EqJCww/exec"; 
+    
+    // State
+    let projects = [];
+    
+    // Translations
+    const i18n = {
+      en: {
+        title: "Project & Systems Hub",
+        subtitle: "Lab 305 Unified Environments Directory",
+        tab_submit: "Upload / Update Work",
+        tab_admin: "Admin Portal",
+        panel_title: "Publish Your System",
+        panel_sub: "Upload your final project link, system details, and tag categories. If it already exists, matching the Title will update the existing entry.",
+        btn_publish: "Publish Final Link",
+        explore_title: "Explore Systems Directory",
+        search_sub: "Search uploaded projects, tags, environments...",
+        admin_req: "Administrator Passcode Required",
+        admin_ph: "Enter Admin Passcode",
+        btn_unlock: "Unlock Admin Mode",
+        search_admin: "Search and manage all systems...",
+        all_sys: "All Systems",
+        empty_sub: "No entries available",
+        empty_sub_desc: "Publish a project above using the submission form.",
+        empty_admin: "No matching entries found",
+        edit_title: "Edit System",
+        btn_cancel: "Cancel",
+        btn_save: "Save Changes",
+        connecting: "Connecting to database...",
+        fetching: "Fetching dynamic directory...",
+        verifying: "Verifying credentials...",
+        
+        // New UI translations
+        data_entry: "Data Entry",
+        actions: "Actions",
+        link: "Link",
+        untitled: "Untitled",
+        
+        // Notifications
+        toast_copy: "Link copied to clipboard!",
+        toast_publish: "New system link successfully registered!",
+        toast_delete: "Entry permanently deleted from spreadsheet.",
+        toast_save: "System changes successfully saved!",
+        toast_admin: "Admin access granted.",
+        err_passcode: "Invalid passcode.",
+        confirm_del: "Are you sure you want to permanently delete this system link from Google Sheets?",
+        edit_who: "Your Name",
+        edit_what: "Change Summary",
+        view_title: "System Details",
+        btn_close: "Close",
+        
+        // Default Google Sheet Headers (so they translate dynamically)
+        "Title": "Title",
+        "System Name": "System Name",
+        "URL": "URL",
+        "Link": "Link",
+        "Description": "Description",
+        "Submitter": "Submitter",
+        "Timestamp": "Timestamp",
+        "Category": "Category",
+        "Status": "Status",
+        "Tags": "Tags",
+        "ID": "ID"
+      },
+      jp: {
+        title: "プロジェクト＆システムハブ",
+        subtitle: "Lab 305 統合環境ディレクトリ",
+        tab_submit: "アップロード / 更新",
+        tab_admin: "管理ポータル",
+        panel_title: "システムの公開",
+        panel_sub: "最終プロジェクトリンクやシステム詳細をアップロードします。既存のタイトルの場合は更新されます。",
+        btn_publish: "リンクを公開する",
+        explore_title: "システムディレクトリを探索",
+        search_sub: "アップロードされたプロジェクト、タグ、環境を検索...",
+        admin_req: "管理者パスコードが必要です",
+        admin_ph: "管理者パスコードを入力",
+        btn_unlock: "管理者モードのロックを解除",
+        search_admin: "すべてのシステムを検索および管理...",
+        all_sys: "すべてのシステム",
+        empty_sub: "エントリがありません",
+        empty_sub_desc: "上記のフォームを使用してプロジェクトを公開してください。",
+        empty_admin: "一致するエントリが見つかりません",
+        edit_title: "システムの編集",
+        btn_cancel: "キャンセル",
+        btn_save: "変更を保存",
+        connecting: "データベースに接続しています...",
+        fetching: "ディレクトリを取得しています...",
+        verifying: "資格情報を確認しています...",
+        
+        // New UI translations
+        data_entry: "データ入力",
+        actions: "アクション",
+        link: "リンク",
+        untitled: "無題",
+        
+        // Notifications
+        toast_copy: "リンクをクリップボードにコピーしました！",
+        toast_publish: "新しいシステムリンクが正常に登録されました！",
+        toast_delete: "スプレッドシートからエントリが完全に削除されました。",
+        toast_save: "システムの変更が正常に保存されました！",
+        toast_admin: "管理者アクセスが許可されました。",
+        err_passcode: "パスコードが無効です。",
+        confirm_del: "Googleスプレッドシートからこのシステムリンクを完全に削除してもよろしいですか？",
+        edit_who: "お名前",
+        edit_what: "変更の概要",
+        view_title: "システム詳細",
+        btn_close: "閉じる",
+        
+        // Default Google Sheet Headers (so they translate dynamically)
+        "Title": "タイトル",
+        "System Name": "システム名",
+        "URL": "URL",
+        "Link": "リンク",
+        "Description": "説明",
+        "Submitter": "提出者",
+        "Timestamp": "タイムスタンプ",
+        "Category": "カテゴリ",
+        "Status": "ステータス",
+        "Tags": "タグ",
+        "ID": "ID"
+      }
+    };
+    
+    let currentLang = localStorage.getItem("lab_305_lang") || "en";
+
+    function toggleLanguage() {
+      currentLang = currentLang === "en" ? "jp" : "en";
+      localStorage.setItem("lab_305_lang", currentLang);
+      applyTranslations();
+      // Re-render dynamic content to reflect new language
+      if (headersList.length > 0) {
+        buildDynamicForms();
+        renderSubmitterGrid();
+        if (isAdminUnlocked) renderAdminGrid();
+      }
+    }
+    
+    function t(key) {
+      return i18n[currentLang][key] || key;
+    }
+
+    function applyTranslations() {
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (!i18n[currentLang][key]) return;
+        if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+           el.placeholder = t(key);
+        } else {
+           // preserve icons if they exist in innerHTML
+           const iconMatch = el.innerHTML.match(/<i class="[^"]+"><\/i>/);
+           if (iconMatch) {
+              el.innerHTML = iconMatch[0] + " " + t(key);
+           } else {
+              el.innerText = t(key);
+           }
+        }
+      });
+      document.getElementById("langToggleBtn").innerText = currentLang === "en" ? "JP" : "EN";
+    }
+
+    let headersList = [];
+    let selectedAdminCategory = "all";
+    let isAdminUnlocked = false;
+    let adminPasscodeValue = "";
+
+    function toggleTheme() {
+      const body = document.documentElement;
+      const currentTheme = body.getAttribute("data-theme");
+      const newTheme = currentTheme === "light" ? "dark" : "light";
+      body.setAttribute("data-theme", newTheme);
+      localStorage.setItem("lab_305_theme", newTheme);
+    }
+
+    const savedTheme = localStorage.getItem("lab_305_theme");
+    if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+
+    function switchView(view) {
+      document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.view-panel').forEach(panel => panel.style.display = 'none');
+      if (view === 'submitter') {
+        document.getElementById('tabSubmitter').classList.add('active');
+        document.getElementById('submitterView').style.display = 'block';
+      } else {
+        document.getElementById('tabAdmin').classList.add('active');
+        document.getElementById('adminView').style.display = 'block';
+      }
+    }
+
+    function toggleLoading(show, text="Connecting to database...") {
+      const loader = document.getElementById("loadingOverlay");
+      document.getElementById("loadingText").innerText = text;
+      show ? loader.classList.add("active") : loader.classList.remove("active");
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastMsg").innerText = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    function fetchAllProjects() {
+      toggleLoading(true, t("fetching"));
+      
+      if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
+        fetch(`${SCRIPT_URL}?api=true`)
+          .then(res => res.json())
+          .then(response => {
+            if (response.error) throw new Error(response.error);
+            headersList = response.headers || [];
+            projects = response.data || [];
+            toggleLoading(false);
+            
+            buildDynamicForms();
+            renderSubmitterGrid();
+            if (isAdminUnlocked) renderAdminGrid();
+          })
+          .catch(err => {
+            toggleLoading(false);
+            alert("Database Error: " + err.message);
+          });
+      } else if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(function(response) {
+            headersList = response.headers;
+            projects = response.data;
+            toggleLoading(false);
+            
+            buildDynamicForms();
+            renderSubmitterGrid();
+            if (isAdminUnlocked) renderAdminGrid();
+          })
+          .withFailureHandler(function(err) {
+            toggleLoading(false);
+            alert("Database Error: " + err.message);
+          })
+          .getProjects();
+      } else {
+        toggleLoading(false);
+        console.warn("SCRIPT_URL not set and google.script not available.");
+      }
+    }
+    
+    function buildDynamicForms() {
+       const formFields = document.getElementById("dynamicFormFields");
+       const editFields = document.getElementById("dynamicEditFields");
+       formFields.innerHTML = "";
+       editFields.innerHTML = "";
+       
+       let htmlContent = `<div class="form-row">`;
+       let htmlContentBottom = ``;
+       let editHtml = ``;
+       
+       headersList.forEach(header => {
+          const hLow = header.toLowerCase();
+          if (hLow === "id" || hLow === "timestamp" || hLow === "tags" || hLow === "タグ" || hLow === "last edited by" || hLow === "edit log") return;
+          
+          const isUrl = hLow.includes("url") || hLow.includes("link");
+          const isDesc = hLow === "description" || hLow === "説明";
+          const isStatus = hLow === "status" || hLow === "ステータス";
+          
+          const label = t(header);
+          const placeholder = currentLang === 'jp' ? label + 'を入力' : 'Enter ' + label;
+          
+          if (isDesc) {
+             const fieldHtml = `
+               <div class="form-group" style="grid-column: 1 / -1;">
+                 <label class="form-label" data-i18n-dynamic="${header}">${label}</label>
+                 <textarea class="form-textarea dynamic-input" data-header="${header}" placeholder="${placeholder}" rows="4"></textarea>
+               </div>
+             `;
+             htmlContentBottom += fieldHtml;
+             editHtml += `
+               <div class="form-group">
+                 <label class="form-label" data-i18n-dynamic="${header}">${label}</label>
+                 <textarea class="form-textarea dynamic-edit-input" data-header="${header}" rows="4"></textarea>
+               </div>
+             `;
+          } else if (isStatus) {
+             const statusOptions = currentLang === 'jp' 
+                 ? ['企画中', '開発中', 'テスト中', '完了', '保留']
+                 : ['Planning', 'In development', 'Testing', 'Completed', 'On hold'];
+             
+             let optionsHtml = statusOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+             
+             htmlContent += `
+                <div class="form-group">
+                  <label class="form-label" data-i18n-dynamic="${header}">${label}</label>
+                  <select class="form-select dynamic-input" data-header="${header}">
+                    ${optionsHtml}
+                  </select>
+                </div>
+             `;
+             editHtml += `
+                <div class="form-group">
+                  <label class="form-label" data-i18n-dynamic="${header}">${label}</label>
+                  <select class="form-select dynamic-edit-input" data-header="${header}">
+                    ${optionsHtml}
+                  </select>
+                </div>
+             `;
+          } else {
+             const inputType = isUrl ? "url" : "text";
+             htmlContent += `
+                <div class="form-group">
+                  <label class="form-label" data-i18n-dynamic="${header}">${label}</label>
+                  <input type="${inputType}" class="form-input dynamic-input" data-header="${header}" placeholder="${placeholder}">
+                </div>
+             `;
+             editHtml += `
+                <div class="form-group">
+                  <label class="form-label" data-i18n-dynamic="${header}">${label}</label>
+                  <input type="${inputType}" class="form-input dynamic-edit-input" data-header="${header}">
+                </div>
+             `;
+          }
+       });
+       
+       htmlContent += `</div>`;
+       formFields.innerHTML = htmlContent + htmlContentBottom;
+       editFields.innerHTML = editHtml;
+    }
+
+    function attemptAdminLogin() {
+      const inputVal = document.getElementById("adminPasscodeInput").value;
+      if (!inputVal) return;
+      
+      toggleLoading(true, t("verifying"));
+      
+      if (typeof google === 'undefined' || !google.script) {
+         isAdminUnlocked = true;
+         adminPasscodeValue = "dummy";
+         document.getElementById("adminAuthBox").style.display = "none";
+         document.getElementById("adminDashboardBox").style.display = "block";
+         renderAdminGrid();
+         toggleLoading(false);
+         return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(isValid) {
+          toggleLoading(false);
+          if (isValid) {
+            isAdminUnlocked = true;
+            adminPasscodeValue = inputVal;
+            document.getElementById("adminAuthBox").style.display = "none";
+            document.getElementById("adminDashboardBox").style.display = "block";
+            renderAdminGrid();
+            showToast(t("toast_admin"));
+          } else {
+            alert(t("err_passcode"));
+          }
+        })
+        .withFailureHandler(function(err) {
+          toggleLoading(false);
+          alert("Auth Error: " + err.message);
+        })
+        .verifyAdmin(inputVal);
+    }
+    
+    // Helper to determine if text is a URL
+    function isUrl(str) {
+      return str && typeof str === 'string' && (str.startsWith("http://") || str.startsWith("https://"));
+    }
+
+    function renderSubmitterGrid() {
+      const grid = document.getElementById("subProjectGrid");
+      const searchQuery = document.getElementById("subSearchInput").value.toLowerCase();
+      grid.innerHTML = "";
+
+      let filtered = projects.filter(p => {
+        if (searchQuery) {
+          return Object.values(p).some(val => String(val).toLowerCase().includes(searchQuery));
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-regular fa-folder-open"></i>
+            <h3 data-i18n="empty_sub">No entries available</h3>
+            <p data-i18n="empty_sub_desc">Publish a project above using the submission form.</p>
+          </div>
+        `;
+        applyTranslations();
+        return;
+      }
+
+      filtered.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "project-card";
+        
+        let titleHeader = headersList.find(h => h.toLowerCase() !== 'id' && h.toLowerCase() !== 'timestamp') || headersList[0];
+        let title = p[titleHeader] || t("untitled");
+        
+        let bodyHtml = "";
+        let primaryUrl = "";
+        
+        headersList.forEach(h => {
+           const hLow = h.toLowerCase();
+           if (h === titleHeader || hLow === 'id' || hLow === 'edit log' || hLow === 'last edited by') return;
+           if (isUrl(p[h]) && !primaryUrl) {
+              primaryUrl = p[h];
+           }
+           
+           if (p[h]) {
+             if (hLow === 'timestamp') {
+                 const d = new Date(p[h]);
+                 const dateOnly = !isNaN(d.getTime()) ? d.toLocaleDateString() : p[h];
+                 bodyHtml += `<div class="card-desc" style="-webkit-line-clamp: 4;"><strong>${t(h)}:</strong> ${dateOnly}</div>`;
+             } else if (isUrl(p[h])) {
+                 bodyHtml += `<div class="card-desc"><strong>${t(h)}:</strong> <a href="${p[h]}" target="_blank" style="color: var(--primary)">${p[h]}</a></div>`;
+             } else {
+                 bodyHtml += `<div class="card-desc" style="-webkit-line-clamp: 4;"><strong>${t(h)}:</strong> ${p[h]}</div>`;
+             }
+           }
+        });
+
+        card.innerHTML = `
+          <div class="card-header">
+            <div class="card-icon"><i class="fa-solid fa-database"></i></div>
+            <span class="status-badge active" data-i18n="data_entry">${t("data_entry")}</span>
+          </div>
+          <div class="card-body" style="cursor: pointer;" onclick="if(event.target.tagName !== 'A' && event.target.tagName !== 'BUTTON') openViewModal('${p._internal_id}')" title="Click to view full details">
+            <h3 class="card-title" title="${title}" style="color: var(--primary); text-decoration: underline; display: inline-block; margin-bottom: 0.5rem;">${title}</h3>
+            ${bodyHtml}
+          </div>
+          <div class="card-footer">
+            <div class="card-actions" style="margin-left: auto;">
+              <button class="action-btn" onclick="openViewModal('${p._internal_id}')" title="View Details">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button class="action-btn edit-btn" onclick="openEditModal('${p._internal_id}')" title="Edit System">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              ${primaryUrl ? `
+              <button class="action-btn" onclick="copyLink('${primaryUrl}')" title="Copy Link">
+                <i class="fa-solid fa-copy"></i>
+              </button>
+              <button class="action-btn open-btn" onclick="window.open('${primaryUrl}', '_blank')" title="Open System">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      applyTranslations();
+    }
+
+    function renderAdminGrid() {
+      const grid = document.getElementById("adminProjectGrid");
+      const searchQuery = document.getElementById("adminSearchInput").value.toLowerCase();
+      grid.innerHTML = "";
+
+      // Ensure grid uses full width for table
+      grid.style.display = "block";
+
+      let filtered = projects.filter(p => {
+        if (searchQuery) {
+          return Object.values(p).some(val => String(val).toLowerCase().includes(searchQuery));
+        }
+        return true;
+      });
+
+      document.getElementById("adminResultsCounter").innerText = `${filtered.length} rows`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-circle-question"></i>
+            <h3 data-i18n="empty_admin">No matching entries found</h3>
+          </div>
+        `;
+        return;
+      }
+      
+      // Render as a table for Admin
+      let tableHtml = `<div style="overflow-x: auto; margin-top: 1rem;"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--bg-card); border-radius: 12px;">`;
+      
+      tableHtml += `<thead><tr style="border-bottom: 1px solid var(--border-color);">`;
+      headersList.forEach(h => {
+         const hLow = h.toLowerCase();
+         if (hLow === "id" || hLow === 'edit log' || hLow === 'last edited by') return;
+         tableHtml += `<th style="padding: 1rem; font-weight: 600;">${t(h)}</th>`;
+      });
+      tableHtml += `<th style="padding: 1rem; font-weight: 600;" data-i18n="actions">${t("actions")}</th>`;
+      tableHtml += `</tr></thead><tbody>`;
+      
+      filtered.forEach(p => {
+         tableHtml += `<tr style="border-bottom: 1px solid var(--border-color);">`;
+         headersList.forEach(h => {
+            const hLow = h.toLowerCase();
+            if (hLow === "id" || hLow === 'edit log' || hLow === 'last edited by') return;
+            let val = p[h] || "";
+            if (hLow === 'timestamp' && val) {
+                const d = new Date(val);
+                if (!isNaN(d.getTime())) val = d.toLocaleDateString();
+            }
+            if (isUrl(val)) {
+               val = `<a href="${val}" target="_blank" style="color: var(--primary)">${t("link")}</a>`;
+            }
+            tableHtml += `<td style="padding: 1rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${val}</td>`;
+         });
+         
+         tableHtml += `
+            <td style="padding: 1rem;">
+               <div class="card-actions">
+                  <button class="action-btn edit-btn" onclick="openEditModal('${p._internal_id}')" title="Edit Entry">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+                  <button class="action-btn" onclick="deleteProject('${p._internal_id}')" title="Delete Entry">
+                    <i class="fa-solid fa-trash" style="color: var(--color-archived);"></i>
+                  </button>
+               </div>
+            </td>
+         `;
+         tableHtml += `</tr>`;
+      });
+      
+      tableHtml += `</tbody></table></div>`;
+      grid.innerHTML = tableHtml;
+      applyTranslations();
+    }
+
+    document.getElementById("submissionForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      try {
+        const projectData = {};
+        const inputs = document.querySelectorAll('.dynamic-input');
+        
+        inputs.forEach(input => {
+           projectData[input.dataset.header] = input.value.trim();
+        });
+
+        toggleLoading(true, t("connecting"));
+
+        if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
+          fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'save', data: projectData })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (!data.success) throw new Error(data.error);
+            document.getElementById("submissionForm").reset();
+            showToast(t("toast_publish"));
+            fetchAllProjects();
+          })
+          .catch(err => {
+            toggleLoading(false);
+            alert("Publishing Failed: " + err.message);
+          });
+        } else if (typeof google !== 'undefined' && google.script) {
+          google.script.run
+            .withSuccessHandler(function(response) {
+              document.getElementById("submissionForm").reset();
+              showToast(t("toast_publish"));
+              fetchAllProjects();
+            })
+            .withFailureHandler(function(err) {
+              toggleLoading(false);
+              alert("Publishing Failed: " + err.message);
+            })
+            .saveProject(projectData);
+        }
+      } catch (error) {
+        alert("Submission Script Error: " + error.message);
+      }
+    });
+
+    window.copyLink = function(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        showToast(t("toast_copy"));
+      }).catch(err => {
+        console.error("Could not copy link", err);
+      });
+    };
+
+    window.deleteProject = function(internalId) {
+      if (!confirm(t("confirm_del"))) {
+        return;
+      }
+
+      toggleLoading(true, t("connecting"));
+
+      if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete', internalId: internalId, adminPasscode: adminPasscodeValue })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) throw new Error(data.error);
+          showToast(t("toast_delete"));
+          fetchAllProjects();
+        })
+        .catch(err => {
+          toggleLoading(false);
+          alert("Delete Failed: " + err.message);
+        });
+      } else if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(function(response) {
+            showToast(t("toast_delete"));
+            fetchAllProjects();
+          })
+          .withFailureHandler(function(err) {
+            toggleLoading(false);
+            alert("Delete Failed: " + err.message);
+          })
+          .deleteProject(internalId, adminPasscodeValue);
+      }
+    };
+
+    let currentEditProject = null;
+
+    window.openEditModal = function(internalId) {
+      const p = projects.find(proj => proj._internal_id === internalId);
+      if (!p) return;
+      currentEditProject = p;
+
+      document.getElementById("editId").value = p._internal_id;
+      
+      const inputs = document.querySelectorAll('.dynamic-edit-input');
+      inputs.forEach(input => {
+         input.value = p[input.dataset.header] || "";
+      });
+
+      document.getElementById("editModal").classList.add("open");
+    };
+
+    window.closeEditModal = function() {
+      document.getElementById("editModal").classList.remove("open");
+      document.getElementById("editForm").reset();
+    };
+
+    window.openViewModal = function(internalId) {
+      const p = projects.find(proj => proj._internal_id === internalId);
+      if (!p) return;
+
+      const container = document.getElementById("viewModalContent");
+      container.innerHTML = "";
+      
+      headersList.forEach(h => {
+         const hLow = h.toLowerCase();
+         if (hLow === 'id' || hLow === 'edit log' || hLow === 'last edited by') return;
+         if (!p[h]) return;
+         
+         let val = p[h];
+         if (hLow === 'timestamp') {
+             const d = new Date(val);
+             val = !isNaN(d.getTime()) ? d.toLocaleDateString() : val;
+         }
+         
+         if (isUrl(val)) {
+             container.innerHTML += `<div style="margin-bottom: 1rem;"><strong>${t(h)}:</strong><br><a href="${val}" target="_blank" style="color: var(--primary); word-break: break-all;">${val}</a></div>`;
+         } else {
+             container.innerHTML += `<div style="margin-bottom: 1rem;"><strong>${t(h)}:</strong><br><div style="white-space: pre-wrap; color: var(--text-secondary);">${val}</div></div>`;
+         }
+      });
+
+      document.getElementById("viewModal").classList.add("open");
+    };
+
+    window.closeViewModal = function() {
+      document.getElementById("viewModal").classList.remove("open");
+    };
+
+    document.getElementById("editForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const internalId = document.getElementById("editId").value;
+      const projectData = { _internal_id: internalId };
+      let autoSummary = [];
+      
+      const inputs = document.querySelectorAll('.dynamic-edit-input');
+      inputs.forEach(input => {
+         const header = input.dataset.header;
+         const newVal = input.value.trim();
+         const oldVal = String(currentEditProject[header] || "").trim();
+         
+         if (newVal !== oldVal) {
+             autoSummary.push(`${header}`);
+         }
+         
+         projectData[header] = newVal;
+      });
+
+      const userNote = document.getElementById("editWhatInput").value.trim();
+      let finalSummary = "";
+      if (autoSummary.length > 0) {
+         finalSummary += "Changed: " + autoSummary.join(", ") + ". ";
+      }
+      if (userNote) {
+         finalSummary += "Note: " + userNote;
+      }
+      if (!finalSummary) {
+         finalSummary = "Saved without changes.";
+      }
+
+      projectData["Last Edited By"] = document.getElementById("editWhoInput").value.trim();
+      projectData["Edit Log"] = finalSummary.trim();
+
+      toggleLoading(true, t("connecting"));
+      closeEditModal();
+
+      if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'save', data: projectData })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) throw new Error(data.error);
+          showToast(t("toast_save"));
+          fetchAllProjects();
+        })
+        .catch(err => {
+          toggleLoading(false);
+          alert("Save Failed: " + err.message);
+        });
+      } else if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(function() {
+            showToast(t("toast_save"));
+            fetchAllProjects();
+          })
+          .withFailureHandler(function(err) {
+            toggleLoading(false);
+            alert("Save Failed: " + err.message);
+          })
+          .saveProject(projectData);
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchAllProjects();
+      document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
+      document.getElementById("langToggleBtn").addEventListener("click", toggleLanguage);
+      applyTranslations();
+      document.getElementById("subSearchInput").addEventListener("input", renderSubmitterGrid);
+      document.getElementById("adminSearchInput").addEventListener("input", renderAdminGrid);
+    });
+  </script>
+</body>
+</html>
