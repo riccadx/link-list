@@ -914,8 +914,8 @@
   <script>
     // --- VERCEL DEPLOYMENT CONFIGURATION ---
     // 1. Deploy Code.gs as a Web App in Google Apps Script (Execute as: Me, Access: Anyone)
-    // 2. Paste the provided Web App URL here:
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbwQsQM36CyPG_LgwMMS9GwK5A-ySb68sjSoLPLhM0gfOmAthVeXgXGyP5tspwwUMZAA/exec"; 
+    // Add your Google Apps Script Web App URL here
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxqeSyHFV1t3XKR26x0m_S2WLe-5B4iqUn0hOlLWBSbjUfx3XBmP_7u4jLccMz1c--Bkg/exec"; 
     
     // State
     let projects = [];
@@ -1671,8 +1671,16 @@
              val = !isNaN(d.getTime()) ? d.toLocaleDateString() : val;
          }
          
-         if (isUrl(val)) {
-             container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><a href="${val}" target="_blank" style="color: var(--primary); font-weight: 500; word-break: break-all;">${val}</a></div>`;
+         const isLogoField = hLow.includes("logo") || hLow.includes("photo") || hLow.includes("ロゴ") || hLow.includes("写真") || hLow.includes("画像");
+         
+         if (String(val).startsWith("data:image/")) {
+             container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><img src="${val}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 0.5rem; object-fit: contain;"></div>`;
+         } else if (isUrl(val)) {
+             if (isLogoField) {
+                 container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><img src="${val}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 0.5rem; object-fit: contain;"><br><a href="${val}" target="_blank" style="color: var(--primary); font-size: 0.85rem; word-break: break-all;">${t("link")}</a></div>`;
+             } else {
+                 container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><a href="${val}" target="_blank" style="color: var(--primary); font-weight: 500; word-break: break-all;">${val}</a></div>`;
+             }
          } else {
              container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><div style="white-space: pre-wrap; color: var(--text-primary); font-weight: 500; font-size: 1.05rem; line-height: 1.6;">${val}</div></div>`;
          }
