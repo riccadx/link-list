@@ -1672,9 +1672,9 @@
          }
          
          if (isUrl(val)) {
-             container.innerHTML += `<div style="margin-bottom: 1rem;"><strong>${t(h)}:</strong><br><a href="${val}" target="_blank" style="color: var(--primary); word-break: break-all;">${val}</a></div>`;
+             container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><a href="${val}" target="_blank" style="color: var(--primary); font-weight: 500; word-break: break-all;">${val}</a></div>`;
          } else {
-             container.innerHTML += `<div style="margin-bottom: 1rem;"><strong>${t(h)}:</strong><br><div style="white-space: pre-wrap; color: var(--text-secondary);">${val}</div></div>`;
+             container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><div style="white-space: pre-wrap; color: var(--text-primary); font-weight: 500; font-size: 1.05rem; line-height: 1.6;">${val}</div></div>`;
          }
       });
 
