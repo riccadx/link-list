@@ -48,13 +48,13 @@
     [data-theme="light"] {
       --bg-primary: #f8fafc;
       --bg-secondary: #ffffff;
-      --bg-card: rgba(255, 255, 255, 0.8);
-      --bg-card-hover: rgba(255, 255, 255, 0.95);
-      --border-color: rgba(0, 0, 0, 0.06);
-      --border-hover: rgba(0, 0, 0, 0.12);
-      --text-primary: #0f172a;
-      --text-secondary: #475569;
-      --text-muted: #94a3b8;
+      --bg-card: rgba(255, 255, 255, 0.85);
+      --bg-card-hover: rgba(255, 255, 255, 0.98);
+      --border-color: rgba(0, 0, 0, 0.08);
+      --border-hover: rgba(0, 0, 0, 0.15);
+      --text-primary: #111827; /* Darker, crisper text */
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
       
       --primary: #4f46e5;
       --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
@@ -417,13 +417,11 @@
 
     .card-title {
       font-family: var(--font-display);
-      font-size: 1.15rem;
+      font-size: 1.25rem;
       font-weight: 700;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.75rem;
+      line-height: 1.3;
       color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .card-submitter {
@@ -795,8 +793,20 @@
 
     <!-- VIEW 1: Submitter / Upload Screen -->
     <div id="submitterView" class="view-panel">
-      <!-- Submission Form -->
-      <div class="submitter-form-panel">
+      <!-- Links list (Explore) at the top -->
+      <h2 style="font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; margin-bottom: 1.5rem; text-align: center;" data-i18n="explore_title">Explore Systems Directory</h2>
+      <div class="control-panel">
+        <div class="search-wrapper">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" class="search-input" id="subSearchInput" placeholder="Search uploaded projects, tags, environments..." data-i18n="search_sub">
+        </div>
+      </div>
+      <div class="project-grid" id="subProjectGrid" style="margin-bottom: 4rem;">
+        <!-- Injected by JavaScript -->
+      </div>
+
+      <!-- Submission Form at the bottom -->
+      <div class="submitter-form-panel" style="margin-top: 2rem;">
         <div class="panel-title" data-i18n="panel_title"><i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i> Publish Your System</div>
         <div class="panel-subtitle" data-i18n="panel_sub">Upload your final project link, system details, and tag categories. If it already exists, matching the Title will update the existing entry.</div>
         
@@ -806,18 +816,6 @@
             <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" data-i18n="btn_publish"><i class="fa-solid fa-paper-plane"></i> Publish Final Link</button>
           </div>
         </form>
-      </div>
-
-      <!-- Links list below form -->
-      <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 1.5rem; text-align: center;" data-i18n="explore_title">Explore Systems Directory</h2>
-      <div class="control-panel">
-        <div class="search-wrapper">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" class="search-input" id="subSearchInput" placeholder="Search uploaded projects, tags, environments..." data-i18n="search_sub">
-        </div>
-      </div>
-      <div class="project-grid" id="subProjectGrid">
-        <!-- Injected by JavaScript -->
       </div>
     </div>
 
@@ -1036,7 +1034,7 @@
       }
     };
     
-    let currentLang = localStorage.getItem("lab_305_lang") || "en";
+    let currentLang = localStorage.getItem("lab_305_lang") || "jp";
 
     function toggleLanguage() {
       currentLang = currentLang === "en" ? "jp" : "en";
@@ -1173,6 +1171,7 @@
           const isUrl = hLow.includes("url") || hLow.includes("link");
           const isDesc = hLow === "description" || hLow === "説明";
           const isStatus = hLow === "status" || hLow === "ステータス";
+          const isLogo = hLow === "logo" || hLow === "photo" || hLow === "ロゴ" || hLow === "写真" || hLow === "画像";
           
           const label = t(header);
           const placeholder = currentLang === 'jp' ? label + 'を入力' : 'Enter ' + label;
@@ -1214,6 +1213,22 @@
                   </select>
                 </div>
              `;
+          } else if (isLogo) {
+             htmlContent += `
+                <div class="form-group">
+                  <label class="form-label" data-i18n-dynamic="${header}">${label}</label>
+                  <input type="file" accept="image/*" class="form-input logo-upload" data-header="${header}">
+                  <input type="hidden" class="dynamic-input" data-header="${header}">
+                </div>
+             `;
+             editHtml += `
+                <div class="form-group">
+                  <label class="form-label" data-i18n-dynamic="${header}">${label}</label>
+                  <input type="file" accept="image/*" class="form-input logo-upload" data-header="${header}">
+                  <input type="hidden" class="dynamic-edit-input" data-header="${header}">
+                  <small style="color: var(--text-secondary); margin-top: 0.25rem; display: block;">Leave blank to keep existing image</small>
+                </div>
+             `;
           } else {
              const inputType = isUrl ? "url" : "text";
              htmlContent += `
@@ -1234,6 +1249,22 @@
        htmlContent += `</div>`;
        formFields.innerHTML = htmlContent + htmlContentBottom;
        editFields.innerHTML = editHtml;
+       
+       setTimeout(() => {
+         document.querySelectorAll('.logo-upload').forEach(input => {
+            input.addEventListener('change', function(e) {
+               const file = e.target.files[0];
+               if (!file) return;
+               const reader = new FileReader();
+               reader.onload = function(event) {
+                  const base64String = event.target.result;
+                  const hiddenInput = e.target.nextElementSibling;
+                  hiddenInput.value = base64String;
+               };
+               reader.readAsDataURL(file);
+            });
+         });
+       }, 100);
     }
 
     function attemptAdminLogin() {
@@ -1334,10 +1365,18 @@
         
         let bodyHtml = "";
         let primaryUrl = "";
+        let logoUrl = "";
         
         headersList.forEach(h => {
            const hLow = h.toLowerCase();
            if (h === titleHeader || hLow === 'id' || hLow === 'edit log' || hLow === 'last edited by') return;
+           const isLogo = hLow === "logo" || hLow === "photo" || hLow === "ロゴ" || hLow === "写真" || hLow === "画像";
+           
+           if (isLogo && p[h]) {
+              if (!logoUrl && String(p[h]).length > 10) logoUrl = p[h];
+              return; // Exclude logo URL from description body
+           }
+           
            if (isUrl(p[h]) && !primaryUrl) {
               primaryUrl = p[h];
            }
@@ -1357,7 +1396,9 @@
 
         card.innerHTML = `
           <div class="card-header">
-            <div class="card-icon"><i class="fa-solid fa-database"></i></div>
+            <div class="card-icon" style="overflow: hidden;">
+              ${logoUrl ? `<img src="${logoUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fa-solid fa-database"></i>`}
+            </div>
             <span class="status-badge active" data-i18n="data_entry">${t("data_entry")}</span>
           </div>
           <div class="card-body" style="cursor: pointer;" onclick="if(event.target.tagName !== 'A' && event.target.tagName !== 'BUTTON') openViewModal('${p._internal_id}')" title="Click to view full details">
@@ -1433,11 +1474,14 @@
             const hLow = h.toLowerCase();
             if (hLow === "id" || hLow === 'edit log' || hLow === 'last edited by') return;
             let val = p[h] || "";
+            const isLogo = hLow === "logo" || hLow === "photo" || hLow === "ロゴ" || hLow === "写真" || hLow === "画像";
             if (hLow === 'timestamp' && val) {
                 const d = new Date(val);
                 if (!isNaN(d.getTime())) val = d.toLocaleDateString();
             }
-            if (isUrl(val)) {
+            if (isLogo && val && String(val).length > 10) {
+               val = `<img src="${val}" style="height: 32px; width: 32px; object-fit: cover; border-radius: 4px;">`;
+            } else if (isUrl(val)) {
                val = `<a href="${val}" target="_blank" style="color: var(--primary)">${t("link")}</a>`;
             }
             tableHtml += `<td style="padding: 1rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${val}</td>`;
