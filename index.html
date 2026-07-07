@@ -1365,6 +1365,21 @@
       return str && typeof str === 'string' && (str.startsWith("http://") || str.startsWith("https://"));
     }
 
+    // Convert standard Google Drive links to direct image links
+    function formatGoogleDriveImage(url) {
+      if (!url) return url;
+      if (url.includes('uc?export=view') || url.startsWith('data:image/')) return url;
+      const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileMatch && fileMatch[1]) {
+         return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
+      }
+      const openMatch = url.match(/open\?id=([a-zA-Z0-9_-]+)/);
+      if (openMatch && openMatch[1]) {
+         return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
+      }
+      return url;
+    }
+
     function renderSubmitterGrid() {
       const grid = document.getElementById("subProjectGrid");
       const searchQuery = document.getElementById("subSearchInput").value.toLowerCase();
@@ -1406,7 +1421,9 @@
            const isLogo = hLow.includes("logo") || hLow.includes("photo") || hLow.includes("ロゴ") || hLow.includes("写真") || hLow.includes("画像");
            
            if (isLogo && p[h]) {
-              if (!logoUrl && String(p[h]).length > 10) logoUrl = p[h];
+              if (!logoUrl && String(p[h]).length > 10) {
+                 logoUrl = isUrl(p[h]) ? formatGoogleDriveImage(p[h]) : p[h];
+              }
               return; // Exclude logo URL from description body
            }
            
@@ -1677,7 +1694,8 @@
              container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><img src="${val}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 0.5rem; object-fit: contain;"></div>`;
          } else if (isUrl(val)) {
              if (isLogoField) {
-                 container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><img src="${val}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 0.5rem; object-fit: contain;"><br><a href="${val}" target="_blank" style="color: var(--primary); font-size: 0.85rem; word-break: break-all;">${t("link")}</a></div>`;
+                 const imgUrl = formatGoogleDriveImage(val);
+                 container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><img src="${imgUrl}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 0.5rem; object-fit: contain;"><br><a href="${val}" target="_blank" style="color: var(--primary); font-size: 0.85rem; word-break: break-all;">${t("link")}</a></div>`;
              } else {
                  container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><a href="${val}" target="_blank" style="color: var(--primary); font-weight: 500; word-break: break-all;">${val}</a></div>`;
              }
