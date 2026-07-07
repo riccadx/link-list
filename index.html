@@ -1171,7 +1171,7 @@
           const isUrl = hLow.includes("url") || hLow.includes("link");
           const isDesc = hLow === "description" || hLow === "説明";
           const isStatus = hLow === "status" || hLow === "ステータス";
-          const isLogo = hLow === "logo" || hLow === "photo" || hLow === "ロゴ" || hLow === "写真" || hLow === "画像";
+          const isLogo = hLow.includes("logo") || hLow.includes("photo") || hLow.includes("ロゴ") || hLow.includes("写真") || hLow.includes("画像");
           
           const label = t(header);
           const placeholder = currentLang === 'jp' ? label + 'を入力' : 'Enter ' + label;
@@ -1370,7 +1370,7 @@
         headersList.forEach(h => {
            const hLow = h.toLowerCase();
            if (h === titleHeader || hLow === 'id' || hLow === 'edit log' || hLow === 'last edited by') return;
-           const isLogo = hLow === "logo" || hLow === "photo" || hLow === "ロゴ" || hLow === "写真" || hLow === "画像";
+           const isLogo = hLow.includes("logo") || hLow.includes("photo") || hLow.includes("ロゴ") || hLow.includes("写真") || hLow.includes("画像");
            
            if (isLogo && p[h]) {
               if (!logoUrl && String(p[h]).length > 10) logoUrl = p[h];
@@ -1474,7 +1474,7 @@
             const hLow = h.toLowerCase();
             if (hLow === "id" || hLow === 'edit log' || hLow === 'last edited by') return;
             let val = p[h] || "";
-            const isLogo = hLow === "logo" || hLow === "photo" || hLow === "ロゴ" || hLow === "写真" || hLow === "画像";
+            const isLogo = hLow.includes("logo") || hLow.includes("photo") || hLow.includes("ロゴ") || hLow.includes("写真") || hLow.includes("画像");
             if (hLow === 'timestamp' && val) {
                 const d = new Date(val);
                 if (!isNaN(d.getTime())) val = d.toLocaleDateString();
