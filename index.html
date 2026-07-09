@@ -1518,7 +1518,7 @@
         
         headersList.forEach(h => {
            const hLow = h.toLowerCase();
-           if (h === titleHeader || hLow === 'id' || hLow === 'edit log' || hLow === 'last edited by') return;
+           if (h === titleHeader || hLow === 'id' || hLow === 'edit log' || hLow === 'last edited by' || hLow.includes('description') || hLow.includes('説明')) return;
            const isLogo = hLow.includes("logo") || hLow.includes("photo") || hLow.includes("ロゴ") || hLow.includes("写真") || hLow.includes("画像");
            
            if (isLogo && p[h]) {
