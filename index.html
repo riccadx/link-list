@@ -502,6 +502,30 @@
       transition: all 0.2s ease;
     }
 
+    .translate-btn {
+      width: auto;
+      height: 32px;
+      padding: 0 0.875rem;
+      border-radius: 8px;
+      background: rgba(162, 242, 213, 0.1);
+      border: 1px solid rgba(162, 242, 213, 0.3);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .translate-btn:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(162, 242, 213, 0.2);
+    }
+
     .action-btn:hover {
       color: var(--text-primary);
       border-color: var(--border-hover);
@@ -1534,7 +1558,7 @@
           </div>
           <div class="card-footer">
             <div class="card-actions" style="margin-left: auto;">
-              <button class="action-btn" onclick="translateCard(this, '${p._internal_id}')" title="Translate this card" style="margin-right: 0.5rem;">
+              <button class="translate-btn" onclick="translateCard(this, '${p._internal_id}')" title="Translate this card" style="margin-right: 0.5rem;">
                 <i class="fa-solid fa-language"></i> <span data-i18n="translate">Translate</span>
               </button>
               <button class="action-btn" onclick="openViewModal('${p._internal_id}')" title="View Details">
