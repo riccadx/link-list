@@ -650,13 +650,6 @@
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    /* Hide Google Translate UI */
-    .goog-te-banner-frame.skiptranslate { display: none !important; }
-    body { top: 0px !important; }
-    #goog-gt-tt { display: none !important; }
-    #google_translate_element { display: none !important; }
-
-
     .toast.show {
       transform: translateY(0);
       opacity: 1;
@@ -1064,15 +1057,6 @@
     
     let currentLang = localStorage.getItem("lab_305_lang") || "jp";
 
-    function triggerGoogleTranslate() {
-      const targetLang = currentLang === "en" ? "en" : "ja";
-      const sel = document.querySelector(".goog-te-combo");
-      if (sel) {
-        sel.value = targetLang;
-        sel.dispatchEvent(new Event("change"));
-      }
-    }
-
     function toggleLanguage() {
       currentLang = currentLang === "en" ? "jp" : "en";
       localStorage.setItem("lab_305_lang", currentLang);
@@ -1084,9 +1068,6 @@
         renderSubmitterGrid();
         if (isAdminUnlocked) renderAdminGrid();
       }
-
-      // Trigger Google Translate to translate dynamic user text
-      setTimeout(triggerGoogleTranslate, 300);
     }
     
     function t(key) {
@@ -1427,6 +1408,55 @@
       return url;
     }
 
+    async function translateCard(btnElement, internalId) {
+      const p = projects.find(x => x._internal_id === internalId);
+      if (!p) return;
+      
+      const originalHtml = btnElement.innerHTML;
+      btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      btnElement.disabled = true;
+
+      const targetLang = currentLang === "en" ? "en" : "ja";
+      const cardBody = btnElement.closest('.project-card').querySelector('.card-body');
+      
+      // We will translate the title and all text descriptions
+      const titleEl = cardBody.querySelector('.card-title');
+      if (titleEl) {
+         titleEl.innerText = await fetchTranslation(titleEl.innerText, targetLang);
+      }
+
+      const descEls = cardBody.querySelectorAll('.card-desc');
+      for (let el of descEls) {
+         const strongNode = el.querySelector('strong');
+         if (strongNode) {
+            // Translate only the text part after the <strong> header
+            let textPart = el.childNodes[el.childNodes.length - 1].nodeValue;
+            if (textPart && textPart.trim().length > 1 && !textPart.includes("http")) {
+                const newText = await fetchTranslation(textPart, targetLang);
+                el.childNodes[el.childNodes.length - 1].nodeValue = " " + newText;
+            }
+         }
+      }
+
+      btnElement.innerHTML = '<i class="fa-solid fa-check"></i>';
+      setTimeout(() => {
+        btnElement.innerHTML = originalHtml;
+        btnElement.disabled = false;
+      }, 2000);
+    }
+
+    async function fetchTranslation(text, targetLang) {
+      if (!text || text.trim() === "") return text;
+      try {
+        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text.trim())}`);
+        const data = await res.json();
+        return data[0].map(x => x[0]).join('');
+      } catch (e) {
+        console.error("Translation error", e);
+        return text;
+      }
+    }
+
     function renderSubmitterGrid() {
       const grid = document.getElementById("subProjectGrid");
       const searchQuery = document.getElementById("subSearchInput").value.toLowerCase();
@@ -1504,6 +1534,9 @@
           </div>
           <div class="card-footer">
             <div class="card-actions" style="margin-left: auto;">
+              <button class="action-btn" onclick="translateCard(this, '${p._internal_id}')" title="Translate this card" style="margin-right: 0.5rem;">
+                <i class="fa-solid fa-language"></i> <span data-i18n="translate">Translate</span>
+              </button>
               <button class="action-btn" onclick="openViewModal('${p._internal_id}')" title="View Details">
                 <i class="fa-solid fa-eye"></i>
               </button>
@@ -1835,29 +1868,5 @@
       document.getElementById("adminSearchInput").addEventListener("input", renderAdminGrid);
     });
   </script>
-
-  <div id="google_translate_element"></div>
-  <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'auto',
-        includedLanguages: 'en,ja',
-        autoDisplay: false
-      }, 'google_translate_element');
-      
-      // Initial translation trigger if needed
-      setTimeout(() => {
-        const currentLang = localStorage.getItem("lab_305_lang") || "jp";
-        const targetLang = currentLang === "en" ? "en" : "ja";
-        const sel = document.querySelector(".goog-te-combo");
-        if (sel && targetLang === "en") {
-          sel.value = targetLang;
-          sel.dispatchEvent(new Event("change"));
-        }
-      }, 1000);
-    }
-  </script>
-  <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
 </body>
 </html>
