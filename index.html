@@ -637,21 +637,25 @@
       position: fixed;
       bottom: 2rem;
       right: 2rem;
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-      border: 1px solid var(--border-color);
+      background: var(--bg-card);
       border-left: 4px solid var(--primary);
-      padding: 1rem 1.5rem;
+      padding: 1.25rem 1.5rem;
       border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+      box-shadow: var(--card-shadow);
+      color: var(--text-primary);
+      font-weight: 600;
       z-index: 1000;
       transform: translateY(100px);
       opacity: 0;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+
+    /* Hide Google Translate UI */
+    .goog-te-banner-frame.skiptranslate { display: none !important; }
+    body { top: 0px !important; }
+    #goog-gt-tt { display: none !important; }
+    #google_translate_element { display: none !important; }
+
 
     .toast.show {
       transform: translateY(0);
@@ -1060,16 +1064,29 @@
     
     let currentLang = localStorage.getItem("lab_305_lang") || "jp";
 
+    function triggerGoogleTranslate() {
+      const targetLang = currentLang === "en" ? "en" : "ja";
+      const sel = document.querySelector(".goog-te-combo");
+      if (sel) {
+        sel.value = targetLang;
+        sel.dispatchEvent(new Event("change"));
+      }
+    }
+
     function toggleLanguage() {
       currentLang = currentLang === "en" ? "jp" : "en";
       localStorage.setItem("lab_305_lang", currentLang);
       applyTranslations();
+      
       // Re-render dynamic content to reflect new language
       if (headersList.length > 0) {
         buildDynamicForms();
         renderSubmitterGrid();
         if (isAdminUnlocked) renderAdminGrid();
       }
+
+      // Trigger Google Translate to translate dynamic user text
+      setTimeout(triggerGoogleTranslate, 300);
     }
     
     function t(key) {
@@ -1818,5 +1835,29 @@
       document.getElementById("adminSearchInput").addEventListener("input", renderAdminGrid);
     });
   </script>
+
+  <div id="google_translate_element"></div>
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'auto',
+        includedLanguages: 'en,ja',
+        autoDisplay: false
+      }, 'google_translate_element');
+      
+      // Initial translation trigger if needed
+      setTimeout(() => {
+        const currentLang = localStorage.getItem("lab_305_lang") || "jp";
+        const targetLang = currentLang === "en" ? "en" : "ja";
+        const sel = document.querySelector(".goog-te-combo");
+        if (sel && targetLang === "en") {
+          sel.value = targetLang;
+          sel.dispatchEvent(new Event("change"));
+        }
+      }, 1000);
+    }
+  </script>
+  <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 </body>
 </html>
