@@ -1441,32 +1441,24 @@
       btnElement.disabled = true;
 
       const targetLang = currentLang === "en" ? "en" : "ja";
-      const cardBody = btnElement.closest('.project-card').querySelector('.card-body');
       
-      // We will translate the title and all text descriptions
-      const titleEl = cardBody.querySelector('.card-title');
-      if (titleEl) {
-         titleEl.innerText = await fetchTranslation(titleEl.innerText, targetLang);
-      }
-
-      const descEls = cardBody.querySelectorAll('.card-desc');
-      for (let el of descEls) {
-         const strongNode = el.querySelector('strong');
-         if (strongNode) {
-            // Translate only the text part after the <strong> header
-            let textPart = el.childNodes[el.childNodes.length - 1].nodeValue;
-            if (textPart && textPart.trim().length > 1 && !textPart.includes("http")) {
-                const newText = await fetchTranslation(textPart, targetLang);
-                el.childNodes[el.childNodes.length - 1].nodeValue = " " + newText;
-            }
+      // Translate all string fields in the project object directly in memory
+      for (const key of Object.keys(p)) {
+         const val = p[key];
+         const isUrl = String(val).startsWith("http") || String(val).startsWith("data:image/");
+         if (key !== '_internal_id' && key.toLowerCase() !== 'id' && typeof val === 'string' && val.trim().length > 1 && !isUrl) {
+             p[key] = await fetchTranslation(val, targetLang);
          }
       }
 
-      btnElement.innerHTML = '<i class="fa-solid fa-check"></i>';
-      setTimeout(() => {
-        btnElement.innerHTML = originalHtml;
-        btnElement.disabled = false;
-      }, 2000);
+      // Re-render the grid so the changes apply instantly
+      renderSubmitterGrid();
+      
+      // If the user happens to have the modal open right now, refresh it
+      const viewModal = document.getElementById("viewModal");
+      if (viewModal.style.display === "flex" || viewModal.style.display === "block") {
+         openViewModal(internalId);
+      }
     }
 
     async function fetchTranslation(text, targetLang) {
