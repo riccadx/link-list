@@ -1673,7 +1673,7 @@
         }
 
         if (missingFields.length > 0) {
-           alert(currentLang === 'ja' ? `必須項目を入力してください:\n${missingFields.join(", ")}` : `Please fill in the required fields:\n${missingFields.join(", ")}`);
+           alert(`Please fill in the required fields:\n必須項目を入力してください:\n\n${missingFields.join("\\n")}`);
            return;
         }
 
@@ -1855,7 +1855,7 @@
       }
 
       if (missingFields.length > 0) {
-         alert(currentLang === 'ja' ? `必須項目を入力してください:\n${missingFields.join(", ")}` : `Please fill in the required fields:\n${missingFields.join(", ")}`);
+         alert(`Please fill in the required fields:\n必須項目を入力してください:\n\n${missingFields.join("\\n")}`);
          return;
       }
 
