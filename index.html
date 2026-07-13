@@ -1668,7 +1668,11 @@
                               hLow.includes('status') || hLow.includes('ステータス');
            
            if (isRequired && !value) {
-              missingFields.push(t(header) || header);
+              let display = header;
+              if (hLow.includes('title') || hLow.includes('システム名')) display = "システム名 (Title)";
+              else if (hLow.includes('url') || hLow.includes('リンク')) display = "URL (リンク)";
+              else if (hLow.includes('status') || hLow.includes('ステータス')) display = "ステータス (Status)";
+              missingFields.push(display);
            }
         }
 
@@ -1850,7 +1854,11 @@
                             hLow.includes('status') || hLow.includes('ステータス');
          
          if (isRequired && !value) {
-            missingFields.push(t(header) || header);
+            let display = header;
+            if (hLow.includes('title') || hLow.includes('システム名')) display = "システム名 (Title)";
+            else if (hLow.includes('url') || hLow.includes('リンク')) display = "URL (リンク)";
+            else if (hLow.includes('status') || hLow.includes('ステータス')) display = "ステータス (Status)";
+            missingFields.push(display);
          }
       }
 
