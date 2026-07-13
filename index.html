@@ -211,37 +211,46 @@
       border-radius: 12px;
     }
 
-    /* Navigation Bar (Submitter vs Admin Screens) */
-    .nav-tabs {
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
       display: flex;
       background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      padding: 0.35rem;
-      border-radius: 14px;
-      gap: 0.25rem;
-      margin-bottom: 2rem;
+      border-top: 1px solid var(--border-color);
+      padding: 0.75rem 1rem;
+      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+      z-index: 100;
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.15);
+      gap: 0.5rem;
     }
 
     .nav-tab {
       flex: 1;
-      padding: 0.75rem 1.25rem;
+      padding: 0.75rem 0.5rem;
       text-align: center;
-      border-radius: 10px;
+      border-radius: 12px;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       cursor: pointer;
       color: var(--text-secondary);
       transition: all 0.25s ease;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
+      gap: 0.35rem;
+    }
+
+    .nav-tab i {
+      font-size: 1.25rem;
     }
 
     .nav-tab.active {
-      background: var(--primary-gradient);
-      color: white;
-      box-shadow: var(--glow-shadow);
+      color: var(--primary);
+      background: rgba(92, 147, 237, 0.1);
     }
 
     /* Search & Filter Section */
@@ -794,6 +803,9 @@
       .brand-title h1 {
         font-size: 1.5rem;
       }
+      .app-container {
+        padding-bottom: 5rem;
+      }
     }
   </style>
 </head>
@@ -812,28 +824,30 @@
   <div class="app-container">
     
     <!-- Top Header -->
-    <header>
-      <div class="brand-section">
+    <header style="margin-bottom: 2rem;">
+      <div class="brand-section" style="width: 100%;">
         <div class="brand-logo">
           <i class="fa-solid fa-link"></i>
         </div>
-        <div class="brand-title">
-          <h1 data-i18n="title">Project & Systems Hub</h1>
+        <div class="brand-title" style="flex: 1;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;">
+            <h1 data-i18n="title">Project & Systems Hub</h1>
+            <div class="header-actions" style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-secondary" id="langToggleBtn" title="Toggle Language" style="font-weight: 800; padding: 0.5rem 0.75rem;">JP</button>
+              <button class="btn btn-secondary btn-icon" id="themeToggleBtn" title="Toggle Theme">
+                <i class="fa-solid fa-moon"></i>
+              </button>
+            </div>
+          </div>
           <p data-i18n="subtitle">Lab 305 Unified Environments Directory</p>
         </div>
       </div>
-      <div class="header-actions">
-        <button class="btn btn-secondary" id="langToggleBtn" title="Toggle Language" style="font-weight: 800; padding: 0.5rem 1rem;">JP</button>
-        <button class="btn btn-secondary btn-icon" id="themeToggleBtn" title="Toggle Theme">
-          <i class="fa-solid fa-moon"></i>
-        </button>
-      </div>
     </header>
 
-    <!-- Two Screen / View Switch Navigation -->
-    <div class="nav-tabs">
-      <div class="nav-tab active" id="tabSubmitter" onclick="switchView('submitter')" data-i18n="tab_submit"><i class="fa-solid fa-cloud-arrow-up"></i> Upload / Update Work</div>
-      <div class="nav-tab" id="tabAdmin" onclick="switchView('admin')" data-i18n="tab_admin"><i class="fa-solid fa-user-shield"></i> Admin Portal</div>
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+      <div class="nav-tab active" id="tabSubmitter" onclick="switchView('submitter')"><i class="fa-solid fa-cloud-arrow-up"></i> <span data-i18n="tab_submit">Upload / Update Work</span></div>
+      <div class="nav-tab" id="tabAdmin" onclick="switchView('admin')"><i class="fa-solid fa-user-shield"></i> <span data-i18n="tab_admin">Admin Portal</span></div>
     </div>
 
     <!-- VIEW 1: Submitter / Upload Screen -->
@@ -1510,47 +1524,29 @@
         
         headersList.forEach(h => {
            const hLow = h.toLowerCase();
-           if (h === titleHeader || hLow === 'id' || hLow === 'edit log' || hLow === 'last edited by' || hLow.includes('description') || hLow.includes('説明')) return;
            const isLogo = hLow.includes("logo") || hLow.includes("photo") || hLow.includes("ロゴ") || hLow.includes("写真") || hLow.includes("画像");
            
            if (isLogo && p[h]) {
               if (!logoUrl && String(p[h]).length > 10) {
                  logoUrl = (isUrl(p[h]) || isDriveId(p[h])) ? formatGoogleDriveImage(p[h]) : p[h];
               }
-              return; // Exclude logo URL from description body
            }
            
            if (isUrl(p[h]) && !primaryUrl) {
               primaryUrl = p[h];
            }
-           
-           if (p[h]) {
-             if (hLow === 'timestamp') {
-                 const d = new Date(p[h]);
-                 const dateOnly = !isNaN(d.getTime()) ? d.toLocaleDateString() : p[h];
-                 bodyHtml += `<div class="card-desc" style="-webkit-line-clamp: 4;"><strong>${t(h)}:</strong> ${dateOnly}</div>`;
-             } else if (isUrl(p[h])) {
-                 bodyHtml += `<div class="card-desc"><strong>${t(h)}:</strong> <a href="${p[h]}" target="_blank" style="color: var(--primary)">${p[h]}</a></div>`;
-             } else {
-                 bodyHtml += `<div class="card-desc" style="-webkit-line-clamp: 4;"><strong>${t(h)}:</strong> ${p[h]}</div>`;
-             }
-           }
         });
 
         card.innerHTML = `
-          <div class="card-header">
-            <div class="card-icon" style="overflow: hidden;">
+          <div class="card-header" style="justify-content: flex-start; gap: 1rem; align-items: center; border-bottom: none; padding-bottom: 0.5rem;">
+            <div class="card-icon" style="overflow: hidden; width: 48px; height: 48px; min-width: 48px; border-radius: 12px; margin: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
               ${logoUrl ? `<img src="${logoUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fa-solid fa-database"></i>`}
             </div>
-            <span class="status-badge active" data-i18n="data_entry">${t("data_entry")}</span>
+            <h3 class="card-title" title="${title}" style="color: var(--text-primary); margin: 0; font-size: 1.15rem; font-weight: 700; flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${title}</h3>
           </div>
-          <div class="card-body" style="cursor: pointer;" onclick="if(event.target.tagName !== 'A' && event.target.tagName !== 'BUTTON') openViewModal('${p._internal_id}')" title="Click to view full details">
-            <h3 class="card-title" title="${title}" style="color: var(--primary); text-decoration: underline; display: inline-block; margin-bottom: 0.5rem;">${title}</h3>
-            ${bodyHtml}
-          </div>
-          <div class="card-footer">
-            <div class="card-actions" style="margin-left: auto;">
-              <button class="translate-btn" onclick="translateCard(this, '${p._internal_id}')" title="Translate this card" style="margin-right: 0.5rem;">
+          <div class="card-footer" style="padding-top: 0.5rem; border-top: 1px solid var(--border-color);">
+            <div class="card-actions" style="margin-left: auto; width: 100%; justify-content: flex-end;">
+              <button class="translate-btn" onclick="translateCard(this, '${p._internal_id}')" title="Translate this card" style="margin-right: auto;">
                 <i class="fa-solid fa-language"></i> <span data-i18n="translate">Translate</span>
               </button>
               <button class="action-btn" onclick="openViewModal('${p._internal_id}')" title="View Details">
@@ -1560,10 +1556,7 @@
                 <i class="fa-solid fa-pen-to-square"></i>
               </button>
               ${primaryUrl ? `
-              <button class="action-btn" onclick="copyLink('${primaryUrl}')" title="Copy Link">
-                <i class="fa-solid fa-copy"></i>
-              </button>
-              <button class="action-btn open-btn" onclick="window.open('${primaryUrl}', '_blank')" title="Open System">
+              <button class="action-btn open-btn" onclick="window.open('${primaryUrl}', '_blank')" title="Open Link">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
               </button>
               ` : ''}
