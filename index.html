@@ -831,7 +831,10 @@
         <div class="brand-title" style="flex: 1;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;">
             <h1 data-i18n="title">Project & Systems Hub</h1>
-            <div class="header-actions" style="display: flex; gap: 0.5rem;">
+            <div class="header-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+              <button class="btn btn-secondary" id="installAppBtn" title="Install App" style="display: none; font-weight: 800; padding: 0.5rem 0.75rem; background: var(--primary); color: white; border: none;">
+                <i class="fa-solid fa-download"></i> Install
+              </button>
               <button class="btn btn-secondary" id="langToggleBtn" title="Toggle Language" style="font-weight: 800; padding: 0.5rem 0.75rem;">JP</button>
               <button class="btn btn-secondary btn-icon" id="themeToggleBtn" title="Toggle Theme">
                 <i class="fa-solid fa-moon"></i>
@@ -1874,6 +1877,34 @@
       applyTranslations();
       document.getElementById("subSearchInput").addEventListener("input", renderSubmitterGrid);
       document.getElementById("adminSearchInput").addEventListener("input", renderAdminGrid);
+    });
+
+    // Handle PWA Installation
+    let deferredPrompt;
+    const installBtn = document.getElementById('installAppBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      deferredPrompt = e;
+      // Update UI notify the user they can install the PWA
+      installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        // Show the install prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+          installBtn.style.display = 'none';
+        }
+        // We've used the prompt, and can't use it again, throw it away
+        deferredPrompt = null;
+      }
     });
 
     // Register Service Worker for PWA installation on Android
