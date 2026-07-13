@@ -1841,6 +1841,24 @@
          projectData[header] = newVal;
       });
 
+      // Validation for required fields: Title, URL, and Status
+      let missingFields = [];
+      for (const [header, value] of Object.entries(projectData)) {
+         const hLow = header.toLowerCase();
+         const isRequired = hLow.includes('title') || hLow.includes('システム名') || 
+                            hLow.includes('url') || hLow.includes('リンク') || 
+                            hLow.includes('status') || hLow.includes('ステータス');
+         
+         if (isRequired && !value) {
+            missingFields.push(t(header) || header);
+         }
+      }
+
+      if (missingFields.length > 0) {
+         alert(currentLang === 'ja' ? `必須項目を入力してください:\n${missingFields.join(", ")}` : `Please fill in the required fields:\n${missingFields.join(", ")}`);
+         return;
+      }
+
       const userNote = document.getElementById("editWhatInput").value.trim();
       let finalSummary = "";
       if (autoSummary.length > 0) {
