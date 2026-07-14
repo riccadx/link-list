@@ -337,8 +337,14 @@
     /* Grid Layout */
     .project-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 1.5rem;
+    }
+
+    @media (min-width: 1200px) {
+      .project-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
     }
 
     /* Cards */
@@ -1501,6 +1507,13 @@
         return true;
       });
 
+      // Sort by Clicks (Highest to Lowest)
+      filtered.sort((a, b) => {
+         const clicksA = parseInt(a["Clicks"]) || 0;
+         const clicksB = parseInt(b["Clicks"]) || 0;
+         return clicksB - clicksA;
+      });
+
       if (filtered.length === 0) {
         grid.innerHTML = `
           <div class="empty-state">
@@ -1551,14 +1564,14 @@
               <button class="translate-btn" onclick="translateCard(this, '${p._internal_id}')" title="Translate this card" style="margin-right: auto;">
                 <i class="fa-solid fa-language"></i> <span data-i18n="translate">Translate</span>
               </button>
-              <button class="action-btn" onclick="openViewModal('${p._internal_id}')" title="View Details">
+              <button class="action-btn" onclick="recordClickFrontend('${p._internal_id}'); openViewModal('${p._internal_id}')" title="View Details">
                 <i class="fa-solid fa-eye"></i>
               </button>
               <button class="action-btn edit-btn" onclick="openEditModal('${p._internal_id}')" title="Edit System">
                 <i class="fa-solid fa-pen-to-square"></i>
               </button>
               ${primaryUrl ? `
-              <button class="action-btn open-btn" onclick="window.open('${primaryUrl}', '_blank')" title="Open Link">
+              <button class="action-btn open-btn" onclick="recordClickFrontend('${p._internal_id}'); window.open('${primaryUrl}', '_blank')" title="Open Link">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
               </button>
               ` : ''}
@@ -1762,6 +1775,15 @@
     };
 
     let currentEditProject = null;
+
+    window.recordClickFrontend = function(internalId) {
+      if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'recordClick', internalId: internalId })
+        }).catch(err => console.error("Error recording click", err));
+      }
+    };
 
     window.openEditModal = function(internalId) {
       const p = projects.find(proj => proj._internal_id === internalId);
