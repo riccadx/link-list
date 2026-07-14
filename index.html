@@ -1987,6 +1987,22 @@
       applyTranslations();
       document.getElementById("subSearchInput").addEventListener("input", renderSubmitterGrid);
       document.getElementById("adminSearchInput").addEventListener("input", renderAdminGrid);
+
+      // Pull-to-refresh for mobile
+      let touchstartY = 0;
+      document.addEventListener('touchstart', e => {
+        if (window.scrollY === 0) touchstartY = e.touches[0].clientY;
+      }, {passive: true});
+
+      document.addEventListener('touchend', e => {
+        if (window.scrollY === 0 && touchstartY > 0) {
+          let touchendY = e.changedTouches[0].clientY;
+          if (touchendY - touchstartY > 150) {
+            showToast(currentLang === 'ja' ? '更新しています...' : 'Refreshing...');
+            setTimeout(() => location.reload(), 500);
+          }
+        }
+      });
     });
 
     // Handle PWA Installation
