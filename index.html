@@ -809,10 +809,23 @@
         gap: 0;
       }
       .project-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
       }
       .project-card {
-        padding: 1.25rem;
+        padding: 0.75rem;
+      }
+      .project-card .card-icon {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+      }
+      .project-card .card-title {
+        font-size: 0.95rem !important;
+      }
+      .project-card .action-btn, .project-card .translate-btn {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.8rem;
       }
       .modal-box {
         padding: 1.5rem;
