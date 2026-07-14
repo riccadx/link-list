@@ -1991,15 +1991,21 @@
       // Pull-to-refresh for mobile
       let touchstartY = 0;
       document.addEventListener('touchstart', e => {
-        if (window.scrollY === 0) touchstartY = e.touches[0].clientY;
+        // Account for iOS rubber-banding being slightly negative or not exactly 0
+        if (window.scrollY <= 10) {
+          touchstartY = e.touches[0].clientY;
+        } else {
+          touchstartY = 0;
+        }
       }, {passive: true});
 
       document.addEventListener('touchend', e => {
-        if (window.scrollY === 0 && touchstartY > 0) {
+        if (touchstartY > 0) {
           let touchendY = e.changedTouches[0].clientY;
-          if (touchendY - touchstartY > 150) {
+          // Lowered the pull distance threshold to 80px and checked scrollY again
+          if (touchendY - touchstartY > 80 && window.scrollY <= 10) {
             showToast(currentLang === 'ja' ? '更新しています...' : 'Refreshing...');
-            setTimeout(() => location.reload(), 500);
+            setTimeout(() => location.reload(), 300);
           }
         }
       });
