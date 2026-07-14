@@ -529,20 +529,22 @@
     }
 
     .translate-btn {
-      width: auto;
+      width: 32px;
       height: 32px;
-      padding: 0 0.875rem;
       border-radius: 8px;
       background: rgba(162, 242, 213, 0.1);
       border: 1px solid rgba(162, 242, 213, 0.3);
       color: var(--accent);
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      justify-content: center;
       cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 600;
+      font-size: 0.875rem;
       transition: all 0.2s ease;
+    }
+    
+    .translate-btn span {
+      display: none;
     }
 
     .translate-btn:hover {
@@ -837,11 +839,10 @@
         justify-content: flex-end !important;
       }
       .project-card .action-btn, .project-card .translate-btn {
-        padding: 0.35rem 0.5rem;
-        font-size: 0.75rem;
-      }
-      .project-card .translate-btn span {
-        display: inline;
+        width: 30px !important;
+        height: 30px !important;
+        padding: 0;
+        font-size: 0.85rem;
       }
       .modal-box {
         padding: 1.5rem;
