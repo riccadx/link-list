@@ -1782,6 +1782,8 @@
           method: 'POST',
           body: JSON.stringify({ action: 'recordClick', internalId: internalId })
         }).catch(err => console.error("Error recording click", err));
+      } else if (typeof google !== 'undefined' && google.script) {
+        google.script.run.recordClick(internalId);
       }
     };
 
