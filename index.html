@@ -1010,7 +1010,31 @@
       </div>
       <div id="viewModalContent" style="font-size: 0.95rem; line-height: 1.6;">
       </div>
-      <div class="modal-footer">
+      
+      <!-- Feedback & Comments Section -->
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
+      <div id="viewCommentsSection">
+        <h4 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-primary);">Feedback & Comments</h4>
+        
+        <!-- Comment Input Form -->
+        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+          <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <input type="text" id="commentNameInput" class="form-input" placeholder="Your Name" style="flex: 1; padding: 0.5rem 0.75rem;">
+            <input type="email" id="commentEmailInput" class="form-input" placeholder="Your Email (Optional)" style="flex: 1; padding: 0.5rem 0.75rem;">
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <input type="text" id="commentTextInput" class="form-input" placeholder="Leave a comment or suggestion..." style="flex: 1;" onkeypress="if(event.key === 'Enter') postComment()">
+            <button class="btn btn-primary" onclick="postComment()" id="postCommentBtn" style="padding: 0.5rem 1.25rem;">Post</button>
+          </div>
+        </div>
+
+        <!-- Comment List -->
+        <div id="commentList" style="display: flex; flex-direction: column; gap: 1rem; max-height: 300px; overflow-y: auto; padding-right: 0.5rem;">
+          <!-- Comments injected here -->
+        </div>
+      </div>
+
+      <div class="modal-footer" style="margin-top: 1.5rem;">
         <button type="button" class="btn btn-secondary" onclick="closeViewModal()" data-i18n="btn_close">Close</button>
       </div>
     </div>
@@ -1276,7 +1300,7 @@
        
        headersList.forEach(header => {
           const hLow = header.toLowerCase();
-          if (hLow === "id" || hLow === "timestamp" || hLow === "tags" || hLow === "タグ" || hLow === "last edited by" || hLow === "edit log") return;
+          if (hLow === "id" || hLow === "timestamp" || hLow === "tags" || hLow === "タグ" || hLow === "last edited by" || hLow === "edit log" || hLow === "comments" || hLow === "コメント") return;
           
           const isUrl = hLow.includes("url") || hLow.includes("link");
           const isDesc = hLow === "description" || hLow === "説明";
@@ -1848,17 +1872,19 @@
       document.getElementById("editModal").classList.remove("open");
       document.getElementById("editForm").reset();
     };
+    let currentViewProjectId = null;
 
     window.openViewModal = function(internalId) {
       const p = projects.find(proj => proj._internal_id === internalId);
       if (!p) return;
+      currentViewProjectId = internalId;
 
       const container = document.getElementById("viewModalContent");
       container.innerHTML = "";
       
       headersList.forEach(h => {
          const hLow = h.toLowerCase();
-         if (hLow === 'id' || hLow === 'edit log' || hLow === 'last edited by') return;
+         if (hLow === 'id' || hLow === 'edit log' || hLow === 'last edited by' || hLow === 'comments' || hLow === 'コメント' || hLow.includes('email') || hLow.includes('メール')) return;
          if (!p[h]) return;
          
          let val = p[h];
@@ -1883,12 +1909,162 @@
              container.innerHTML += `<div style="margin-bottom: 1.25rem;"><strong style="color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">${t(h)}:</strong><div style="white-space: pre-wrap; color: var(--text-primary); font-weight: 500; font-size: 1.05rem; line-height: 1.6;">${val}</div></div>`;
          }
       });
+      
+      // Render Comments
+      renderComments(p);
 
       document.getElementById("viewModal").classList.add("open");
     };
 
     window.closeViewModal = function() {
       document.getElementById("viewModal").classList.remove("open");
+      currentViewProjectId = null;
+    };
+
+    function renderComments(project) {
+      const commentList = document.getElementById("commentList");
+      commentList.innerHTML = "";
+      document.getElementById("commentTextInput").value = "";
+      
+      let comments = [];
+      try {
+        if (project["Comments"] || project["コメント"]) {
+          const raw = project["Comments"] || project["コメント"];
+          if (typeof raw === 'string') comments = JSON.parse(raw);
+          else comments = raw;
+        }
+      } catch (e) {
+        comments = [];
+      }
+      
+      if (!Array.isArray(comments) || comments.length === 0) {
+        commentList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem; font-style: italic; text-align: center; margin-top: 1rem;">No comments yet. Be the first to leave feedback!</p>`;
+        return;
+      }
+      
+      // Sort newest to oldest
+      comments.sort((a, b) => b.timestamp - a.timestamp);
+      
+      comments.forEach(c => {
+        const d = new Date(c.timestamp);
+        let timeString = d.toLocaleDateString();
+        // Calculate relative time if recent
+        const diffHours = (Date.now() - d.getTime()) / (1000 * 60 * 60);
+        if (diffHours < 24) {
+           timeString = Math.floor(diffHours) <= 0 ? "Just now" : Math.floor(diffHours) + "h ago";
+        }
+        
+        const avatarColor = c.name.toLowerCase() === 'anonymous' ? '#334155' : 'var(--primary)';
+        const initial = c.name.charAt(0).toUpperCase();
+        
+        commentList.innerHTML += `
+          <div style="display: flex; gap: 0.75rem;">
+            <div style="width: 32px; height: 32px; min-width: 32px; border-radius: 50%; background: ${avatarColor}; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; color: white;">
+              ${initial}
+            </div>
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.25rem;">
+                <strong style="font-size: 0.9rem; color: var(--text-primary);">${c.name}</strong>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">${timeString}</span>
+              </div>
+              <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 0 12px 12px 12px; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; border: 1px solid rgba(255,255,255,0.05);">
+                ${c.text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    window.postComment = function() {
+      if (!currentViewProjectId) return;
+      
+      const textInput = document.getElementById("commentTextInput");
+      const text = textInput.value.trim();
+      if (!text) return;
+      
+      const name = document.getElementById("commentNameInput").value.trim() || "Anonymous";
+      const email = document.getElementById("commentEmailInput").value.trim() || "";
+      
+      const btn = document.getElementById("postCommentBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+      
+      const payload = {
+        action: 'addComment',
+        internalId: currentViewProjectId,
+        commentData: {
+          name: name,
+          email: email,
+          text: text
+        }
+      };
+      
+      if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        })
+        .then(() => {
+           showToast("Comment posted!");
+           // Optimistically append comment to local data
+           const p = projects.find(proj => proj._internal_id === currentViewProjectId);
+           if (p) {
+             let comments = [];
+             try {
+               const raw = p["Comments"] || p["コメント"];
+               if (raw) comments = typeof raw === 'string' ? JSON.parse(raw) : raw;
+             } catch(e){}
+             
+             comments.push({
+               name: name,
+               email: email,
+               text: text,
+               timestamp: Date.now()
+             });
+             p["Comments"] = JSON.stringify(comments);
+             renderComments(p);
+           }
+        })
+        .catch(err => {
+           console.error(err);
+           alert("Failed to post comment.");
+        })
+        .finally(() => {
+           btn.disabled = false;
+           btn.innerText = "Post";
+        });
+      } else if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(function() {
+             showToast("Comment posted!");
+             const p = projects.find(proj => proj._internal_id === currentViewProjectId);
+             if (p) {
+               let comments = [];
+               try {
+                 const raw = p["Comments"] || p["コメント"];
+                 if (raw) comments = typeof raw === 'string' ? JSON.parse(raw) : raw;
+               } catch(e){}
+               comments.push({
+                 name: name,
+                 email: email,
+                 text: text,
+                 timestamp: Date.now()
+               });
+               p["Comments"] = JSON.stringify(comments);
+               renderComments(p);
+             }
+             btn.disabled = false;
+             btn.innerText = "Post";
+          })
+          .withFailureHandler(function(err) {
+             console.error(err);
+             alert("Failed to post comment.");
+             btn.disabled = false;
+             btn.innerText = "Post";
+          })
+          .addComment(currentViewProjectId, payload.commentData);
+      }
     };
 
     document.getElementById("editForm").addEventListener("submit", function(e) {

@@ -66,6 +66,12 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     
+    if (payload.action === 'addComment') {
+      addComment(payload.internalId, payload.commentData);
+      return ContentService.createTextOutput(JSON.stringify({ success: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
     throw new Error("Unknown action: " + payload.action);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
@@ -397,4 +403,96 @@ function deleteProject(internalId, passcode) {
  */
 function verifyAdmin(passcode) {
   return passcode === ADMIN_PASSCODE;
+}
+
+/**
+ * Add a comment to a project and notify the developer
+ */
+function addComment(internalId, commentData) {
+  const sheet = getSheet();
+  const lastCol = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+  
+  // Ensure Comments column exists
+  let commentsColIdx = headers.findIndex(h => h.toLowerCase() === "comments" || h === "コメント");
+  if (commentsColIdx === -1) {
+    sheet.getRange(1, lastCol + 1).setValue("Comments").setFontWeight("bold").setBackground("#e2e8f0");
+    commentsColIdx = lastCol;
+    headers.push("Comments");
+  }
+  
+  const idColIdx = headers.findIndex(h => h.toLowerCase() === "_internal_id" || h === "ID");
+  if (idColIdx === -1) throw new Error("Cannot find ID column");
+  
+  // Look for developer email column
+  const devEmailColIdx = headers.findIndex(h => h.toLowerCase().includes("email") || h.toLowerCase().includes("メール"));
+  const titleColIdx = headers.findIndex(h => h.toLowerCase() === "title" || h === "タイトル" || h.toLowerCase() === "system name" || h === "システム名");
+  
+  const dataRange = sheet.getDataRange();
+  const data = dataRange.getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    const rowId = String(data[i][idColIdx]).trim();
+    if (rowId === String(internalId).trim()) {
+       // Parse existing comments
+       let comments = [];
+       try {
+         const cellData = data[i][commentsColIdx];
+         if (cellData) comments = JSON.parse(cellData);
+       } catch (e) {
+         comments = [];
+       }
+       
+       // Filter out comments older than 30 days
+       const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+       comments = comments.filter(c => c.timestamp >= thirtyDaysAgo);
+       
+       // Append new comment
+       const newComment = {
+         name: commentData.name || "Anonymous",
+         email: commentData.email || "",
+         text: commentData.text,
+         timestamp: Date.now()
+       };
+       comments.push(newComment);
+       
+       // Save back to sheet
+       sheet.getRange(i + 1, commentsColIdx + 1).setValue(JSON.stringify(comments));
+       
+       // Send email notification to developer if email exists
+       if (devEmailColIdx !== -1) {
+         const devEmail = String(data[i][devEmailColIdx]).trim();
+         const projTitle = titleColIdx !== -1 ? data[i][titleColIdx] : "a project";
+         
+         if (devEmail && devEmail.includes("@")) {
+           const subject = `New feedback on your project: ${projTitle}`;
+           const body = `Hello,\n\nSomeone just left new feedback on your project (${projTitle}) in the Lab 305 Directory!\n\n`
+                      + `From: ${newComment.name}\n`
+                      + `Message: "${newComment.text}"\n\n`
+                      + (newComment.email ? `They provided their email address so you can reply to this email directly to answer them!\n\n` : `\n\n`)
+                      + `Best,\nLab 305 Project Hub`;
+                      
+           try {
+             if (newComment.email && newComment.email.includes("@")) {
+               MailApp.sendEmail({
+                 to: devEmail,
+                 subject: subject,
+                 body: body,
+                 replyTo: newComment.email
+               });
+             } else {
+               MailApp.sendEmail({
+                 to: devEmail,
+                 subject: subject,
+                 body: body
+               });
+             }
+           } catch(emailErr) {
+             console.error("Failed to send email", emailErr);
+           }
+         }
+       }
+       break;
+    }
+  }
 }
