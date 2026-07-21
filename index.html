@@ -1014,17 +1014,17 @@
       <!-- Feedback & Comments Section -->
       <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
       <div id="viewCommentsSection">
-        <h4 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-primary);">Feedback & Comments</h4>
+        <h4 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-primary);" data-i18n="fb_title">Feedback & Comments</h4>
         
         <!-- Comment Input Form -->
         <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
           <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
-            <input type="text" id="commentNameInput" class="form-input" placeholder="Your Name" style="flex: 1; padding: 0.5rem 0.75rem;">
-            <input type="email" id="commentEmailInput" class="form-input" placeholder="Your Email (Optional)" style="flex: 1; padding: 0.5rem 0.75rem;">
+            <input type="text" id="commentNameInput" class="form-input" placeholder="Your Name" data-i18n="fb_name_ph" style="flex: 1; padding: 0.5rem 0.75rem;">
+            <input type="email" id="commentEmailInput" class="form-input" placeholder="Your Email (Optional)" data-i18n="fb_email_ph" style="flex: 1; padding: 0.5rem 0.75rem;">
           </div>
           <div style="display: flex; gap: 0.75rem;">
-            <input type="text" id="commentTextInput" class="form-input" placeholder="Leave a comment or suggestion..." style="flex: 1;" onkeypress="if(event.key === 'Enter') postComment()">
-            <button class="btn btn-primary" onclick="postComment()" id="postCommentBtn" style="padding: 0.5rem 1.25rem;">Post</button>
+            <input type="text" id="commentTextInput" class="form-input" placeholder="Leave a comment or suggestion..." data-i18n="fb_text_ph" style="flex: 1;" onkeypress="if(event.key === 'Enter') postComment()">
+            <button class="btn btn-primary" onclick="postComment()" id="postCommentBtn" data-i18n="fb_post" style="padding: 0.5rem 1.25rem;">Post</button>
           </div>
         </div>
 
@@ -1095,6 +1095,18 @@
         view_title: "System Details",
         btn_close: "Close",
         
+        // Comments UI
+        fb_title: "Feedback & Comments",
+        fb_name_ph: "Your Name",
+        fb_email_ph: "Your Email (Optional)",
+        fb_text_ph: "Leave a comment or suggestion...",
+        fb_post: "Post",
+        fb_no_comments: "No comments yet. Be the first to leave feedback!",
+        fb_just_now: "Just now",
+        fb_h_ago: "h ago",
+        fb_posted: "Comment posted!",
+        fb_fail: "Failed to post comment.",
+        
         // Default Google Sheet Headers (so they translate dynamically)
         "Title": "Title",
         "System Name": "System Name",
@@ -1151,6 +1163,18 @@
         edit_what: "変更の概要",
         view_title: "システム詳細",
         btn_close: "閉じる",
+        
+        // Comments UI
+        fb_title: "フィードバック＆コメント",
+        fb_name_ph: "お名前",
+        fb_email_ph: "メール (任意)",
+        fb_text_ph: "コメントや提案を残す...",
+        fb_post: "投稿",
+        fb_no_comments: "まだコメントはありません。最初のフィードバックを残しましょう！",
+        fb_just_now: "たった今",
+        fb_h_ago: "時間前",
+        fb_posted: "コメントを投稿しました！",
+        fb_fail: "コメントの投稿に失敗しました。",
         
         // Default Google Sheet Headers (so they translate dynamically)
         "Title": "タイトル",
@@ -1938,7 +1962,7 @@
       }
       
       if (!Array.isArray(comments) || comments.length === 0) {
-        commentList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem; font-style: italic; text-align: center; margin-top: 1rem;">No comments yet. Be the first to leave feedback!</p>`;
+        commentList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem; font-style: italic; text-align: center; margin-top: 1rem;">${t("fb_no_comments")}</p>`;
         return;
       }
       
@@ -1951,7 +1975,7 @@
         // Calculate relative time if recent
         const diffHours = (Date.now() - d.getTime()) / (1000 * 60 * 60);
         if (diffHours < 24) {
-           timeString = Math.floor(diffHours) <= 0 ? "Just now" : Math.floor(diffHours) + "h ago";
+           timeString = Math.floor(diffHours) <= 0 ? t("fb_just_now") : Math.floor(diffHours) + t("fb_h_ago");
         }
         
         const avatarColor = c.name.toLowerCase() === 'anonymous' ? '#334155' : 'var(--primary)';
@@ -2006,7 +2030,7 @@
           body: JSON.stringify(payload)
         })
         .then(() => {
-           showToast("Comment posted!");
+           showToast(t("fb_posted"));
            // Optimistically append comment to local data
            const p = projects.find(proj => proj._internal_id === currentViewProjectId);
            if (p) {
@@ -2028,16 +2052,16 @@
         })
         .catch(err => {
            console.error(err);
-           alert("Failed to post comment.");
+           alert(t("fb_fail"));
         })
         .finally(() => {
            btn.disabled = false;
-           btn.innerText = "Post";
+           btn.innerText = t("fb_post");
         });
       } else if (typeof google !== 'undefined' && google.script) {
         google.script.run
           .withSuccessHandler(function() {
-             showToast("Comment posted!");
+             showToast(t("fb_posted"));
              const p = projects.find(proj => proj._internal_id === currentViewProjectId);
              if (p) {
                let comments = [];
@@ -2055,13 +2079,13 @@
                renderComments(p);
              }
              btn.disabled = false;
-             btn.innerText = "Post";
+             btn.innerText = t("fb_post");
           })
           .withFailureHandler(function(err) {
              console.error(err);
-             alert("Failed to post comment.");
+             alert(t("fb_fail"));
              btn.disabled = false;
-             btn.innerText = "Post";
+             btn.innerText = t("fb_post");
           })
           .addComment(currentViewProjectId, payload.commentData);
       }
