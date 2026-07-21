@@ -2029,7 +2029,11 @@
           method: 'POST',
           body: JSON.stringify(payload)
         })
-        .then(() => {
+        .then(res => res.json())
+        .then(data => {
+           if (!data.success) {
+               throw new Error(data.error || "Unknown backend error");
+           }
            showToast(t("fb_posted"));
            // Optimistically append comment to local data
            const p = projects.find(proj => proj._internal_id === currentViewProjectId);
