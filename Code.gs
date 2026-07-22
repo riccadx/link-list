@@ -523,17 +523,30 @@ function addComment(internalId, commentData) {
        const projTitle = (titleColIdx !== -1 && data[i][titleColIdx]) ? data[i][titleColIdx] : "a project";
        
        if (devEmail && devEmail.includes("@")) {
-         const subject = `New feedback on your project: ${projTitle}`;
-         let body = `Hello,\n\nSomeone just left new feedback on your project (${projTitle}) in the Lab 305 Directory!\n\n`
-                  + `From: ${newComment.name}\n`
-                  + `Comment: "${newComment.text}"\n\n`;
+         const subject = `【Lab 305】プロジェクト「${projTitle}」に新しいフィードバックが届きました`;
+          
+         let body = `こんにちは！日頃の開発・運用お疲れ様です。\n`
+                  + `(Hello, thank you for your hard work!)\n\n`
+                  + `Lab 305 プロジェクトディレクトリに掲載中のあなたのプロジェクト「${projTitle}」へ、新しいフィードバック・コメントが届きました！\n\n`
+                  + `--------------------------------------------------\n`
+                  + `■ 投稿者 (From): ${newComment.name}\n`
+                  + `■ コメント内容 (Comment):\n"${newComment.text}"\n`
+                  + `--------------------------------------------------\n\n`;
                   
          if (attachments.length > 0) {
-           body += `📎 ${attachments.length} photo attachment(s) included with this email!\n\n`;
+           body += `📎 添付画像（${attachments.length}件）が含まれています。本メールの添付ファイルをご確認ください。\n`
+                 + `(${attachments.length} photo attachment(s) included with this email!)\n\n`;
          }
          
-         body += (newComment.email ? `User Email for Reply: ${newComment.email}\n(You can reply directly to this email to answer them!)\n\n` : `\n\n`)
-               + `Best regards,\nLab 305 Project Hub`;
+         if (newComment.email) {
+           body += `■ 返信用メールアドレス (Reply-to Email): ${newComment.email}\n`
+                 + `（※このメールに直接返信すると、投稿者にそのまま回答を送ることができます！）\n`
+                 + `(You can reply directly to this email to answer them!)\n\n`;
+         }
+         
+         body += `引き続き開発・管理よろしくお願いいたします。\n\n`
+               + `敬具\n`
+               + `Lab 305 Project Hub`;
                     
          try {
            const emailOptions = {
