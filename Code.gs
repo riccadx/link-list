@@ -473,8 +473,24 @@ function addComment(internalId, commentData) {
        };
        comments.push(newComment);
        
-       // Save back to sheet
+       // Save back to sheet (website comments array stays text-only)
        sheet.getRange(i + 1, commentsColIdx + 1).setValue(JSON.stringify(comments));
+       
+       // Process attached image for email notification if present
+       let attachments = [];
+       if (commentData && commentData.image && commentData.image.data) {
+         try {
+           const splitIdx = commentData.image.data.indexOf("base64,");
+           if (splitIdx !== -1) {
+             const mimeType = commentData.image.type || "image/png";
+             const base64Str = commentData.image.data.substring(splitIdx + 7);
+             const blob = Utilities.newBlob(Utilities.base64Decode(base64Str), mimeType, commentData.image.filename || "attached_photo.png");
+             attachments.push(blob);
+           }
+         } catch(attachErr) {
+           console.error("Error creating image attachment: " + attachErr.toString());
+         }
+       }
        
        // Determine developer email
        let devEmail = "";
@@ -504,11 +520,16 @@ function addComment(internalId, commentData) {
        
        if (devEmail && devEmail.includes("@")) {
          const subject = `New feedback on your project: ${projTitle}`;
-         const body = `Hello,\n\nSomeone just left new feedback on your project (${projTitle}) in the Lab 305 Directory!\n\n`
-                    + `From: ${newComment.name}\n`
-                    + `Comment: "${newComment.text}"\n\n`
-                    + (newComment.email ? `User Email for Reply: ${newComment.email}\n(You can reply directly to this email to answer them!)\n\n` : `\n\n`)
-                    + `Best regards,\nLab 305 Project Hub`;
+         let body = `Hello,\n\nSomeone just left new feedback on your project (${projTitle}) in the Lab 305 Directory!\n\n`
+                  + `From: ${newComment.name}\n`
+                  + `Comment: "${newComment.text}"\n\n`;
+                  
+         if (attachments.length > 0) {
+           body += `📎 A photo attachment has been included with this email!\n\n`;
+         }
+         
+         body += (newComment.email ? `User Email for Reply: ${newComment.email}\n(You can reply directly to this email to answer them!)\n\n` : `\n\n`)
+               + `Best regards,\nLab 305 Project Hub`;
                     
          try {
            const emailOptions = {
@@ -518,6 +539,9 @@ function addComment(internalId, commentData) {
            };
            if (newComment.email && newComment.email.includes("@")) {
              emailOptions.replyTo = newComment.email;
+           }
+           if (attachments.length > 0) {
+             emailOptions.attachments = attachments;
            }
            MailApp.sendEmail(emailOptions);
            console.log("Notification email sent successfully to: " + devEmail);

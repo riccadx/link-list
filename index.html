@@ -1022,9 +1022,20 @@
             <input type="text" id="commentNameInput" class="form-input" placeholder="Your Name" data-i18n="fb_name_ph" style="flex: 1; padding: 0.5rem 0.75rem;">
             <input type="email" id="commentEmailInput" class="form-input" placeholder="Your Email (Optional)" data-i18n="fb_email_ph" style="flex: 1; padding: 0.5rem 0.75rem;">
           </div>
-          <div style="display: flex; gap: 0.75rem;">
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
             <input type="text" id="commentTextInput" class="form-input" placeholder="Leave a comment or suggestion..." data-i18n="fb_text_ph" style="flex: 1;" onkeypress="if(event.key === 'Enter') postComment()">
+            
+            <label for="commentImageInput" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.55rem 0.75rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Attach Photo for Developer" onmouseover="this.style.color='var(--primary)'; this.style.borderColor='var(--primary)';" onmouseout="this.style.color='var(--text-secondary)'; this.style.borderColor='var(--border-color)';">
+              <i class="fa-solid fa-paperclip"></i>
+            </label>
+            <input type="file" id="commentImageInput" accept="image/*" style="display: none;" onchange="handleCommentImageSelect(event)">
+            
             <button class="btn btn-primary" onclick="postComment()" id="postCommentBtn" data-i18n="fb_post" style="padding: 0.5rem 1.25rem;">Post</button>
+          </div>
+          <div id="commentImagePreview" style="display: none; align-items: center; gap: 0.5rem; margin-top: 0.5rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--text-primary); padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; width: fit-content;">
+            <i class="fa-solid fa-image" style="color: #60a5fa;"></i>
+            <span id="commentImageName" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+            <button type="button" onclick="clearCommentImage()" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 0.2rem; font-weight: bold; line-height: 1;">&times;</button>
           </div>
         </div>
 
@@ -2095,6 +2106,45 @@
       }
     };
 
+    let selectedCommentImage = null;
+
+    window.handleCommentImageSelect = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      if (!file.type.startsWith("image/")) {
+        alert("Please select an image file.");
+        e.target.value = "";
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size should be under 5MB.");
+        e.target.value = "";
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        selectedCommentImage = {
+          data: evt.target.result,
+          filename: file.name,
+          type: file.type
+        };
+        document.getElementById("commentImageName").innerText = file.name;
+        document.getElementById("commentImagePreview").style.display = "flex";
+      };
+      reader.readAsDataURL(file);
+    };
+
+    window.clearCommentImage = function() {
+      selectedCommentImage = null;
+      const el = document.getElementById("commentImageInput");
+      if (el) el.value = "";
+      const prev = document.getElementById("commentImagePreview");
+      if (prev) prev.style.display = "none";
+    };
+
     window.postComment = function() {
       if (!currentViewProjectId) return;
       
@@ -2115,7 +2165,30 @@
         commentData: {
           name: name,
           email: email,
-          text: text
+          text: text,
+          image: selectedCommentImage
+        }
+      };
+      
+      const handlePostSuccess = function() {
+        showToast(t("fb_posted"));
+        clearCommentImage();
+        const p = projects.find(proj => proj._internal_id === currentViewProjectId);
+        if (p) {
+          let comments = [];
+          try {
+            const raw = p["Comments"] || p["コメント"];
+            if (raw) comments = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          } catch(e){}
+          
+          comments.push({
+            name: name,
+            email: email,
+            text: text,
+            timestamp: Date.now()
+          });
+          p["Comments"] = JSON.stringify(comments);
+          renderComments(p);
         }
       };
       
@@ -2129,25 +2202,7 @@
            if (!data.success) {
                throw new Error(data.error || "Unknown backend error");
            }
-           showToast(t("fb_posted"));
-           // Optimistically append comment to local data
-           const p = projects.find(proj => proj._internal_id === currentViewProjectId);
-           if (p) {
-             let comments = [];
-             try {
-               const raw = p["Comments"] || p["コメント"];
-               if (raw) comments = typeof raw === 'string' ? JSON.parse(raw) : raw;
-             } catch(e){}
-             
-             comments.push({
-               name: name,
-               email: email,
-               text: text,
-               timestamp: Date.now()
-             });
-             p["Comments"] = JSON.stringify(comments);
-             renderComments(p);
-           }
+           handlePostSuccess();
         })
         .catch(err => {
            console.error(err);
@@ -2159,26 +2214,11 @@
         });
       } else if (typeof google !== 'undefined' && google.script) {
         google.script.run
-          .withSuccessHandler(function() {
-             showToast(t("fb_posted"));
-             const p = projects.find(proj => proj._internal_id === currentViewProjectId);
-             if (p) {
-               let comments = [];
-               try {
-                 const raw = p["Comments"] || p["コメント"];
-                 if (raw) comments = typeof raw === 'string' ? JSON.parse(raw) : raw;
-               } catch(e){}
-               comments.push({
-                 name: name,
-                 email: email,
-                 text: text,
-                 timestamp: Date.now()
-               });
-               p["Comments"] = JSON.stringify(comments);
-               renderComments(p);
-             }
+          .withSuccessHandler(function(res) {
              btn.disabled = false;
              btn.innerText = t("fb_post");
+             if (res && res.error) alert(res.error);
+             else handlePostSuccess();
           })
           .withFailureHandler(function(err) {
              console.error(err);
