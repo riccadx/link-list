@@ -72,6 +72,12 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     
+    if (payload.action === 'deleteComment') {
+      deleteComment(payload.internalId, payload.commentTimestamp, payload.commentText, payload.adminPasscode);
+      return ContentService.createTextOutput(JSON.stringify({ success: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
     throw new Error("Unknown action: " + payload.action);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
@@ -210,11 +216,12 @@ function getProjects() {
 }
 
 /**
- * Run this function ONCE from the editor to force the Authorization popup
+ * Run this function ONCE from the editor to force the Authorization popup for Drive and Email (MailApp)
  */
-function authorizeDrive() {
+function authorizeServices() {
   DriveApp.getRootFolder();
-  console.log("Drive Authorization Successful!");
+  MailApp.getRemainingDailyQuota();
+  console.log("Drive & Mail Authorization Successful! Remaining daily email quota: " + MailApp.getRemainingDailyQuota());
 }
 
 /**
@@ -421,12 +428,21 @@ function addComment(internalId, commentData) {
     headers.push("Comments");
   }
   
-  const idColIdx = headers.findIndex(h => h.toLowerCase() === "_internal_id" || h === "ID");
+  const idColIdx = headers.findIndex(h => h.toLowerCase() === "_internal_id" || h.toLowerCase() === "id" || h.toLowerCase() === "identifier");
   if (idColIdx === -1) throw new Error("Cannot find ID column");
   
+  const titleColIdx = headers.findIndex(h => {
+    const l = h.toLowerCase();
+    return l === "title" || l === "タイトル" || l === "system name" || l === "システム名" || l === "name" || l === "名前";
+  });
+
   // Look for developer email column
-  const devEmailColIdx = headers.findIndex(h => h.toLowerCase().includes("email") || h.toLowerCase().includes("メール"));
-  const titleColIdx = headers.findIndex(h => h.toLowerCase() === "title" || h === "タイトル" || h.toLowerCase() === "system name" || h === "システム名");
+  const devEmailColIdx = headers.findIndex(h => {
+    const l = h.toLowerCase();
+    return l.includes("email") || l.includes("メール") || l.includes("contact") || l.includes("developer") || 
+           l.includes("author") || l.includes("submitter") || l.includes("owner") || 
+           l.includes("作成者") || l.includes("担当者") || l.includes("連絡先");
+  });
   
   const dataRange = sheet.getDataRange();
   const data = dataRange.getValues();
@@ -445,7 +461,7 @@ function addComment(internalId, commentData) {
        
        // Filter out comments older than 30 days
        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-       comments = comments.filter(c => c.timestamp >= thirtyDaysAgo);
+       comments = comments.filter(c => c && c.timestamp >= thirtyDaysAgo);
        
        // Append new comment
        const newComment = {
@@ -459,40 +475,112 @@ function addComment(internalId, commentData) {
        // Save back to sheet
        sheet.getRange(i + 1, commentsColIdx + 1).setValue(JSON.stringify(comments));
        
-       // Send email notification to developer if email exists
-       if (devEmailColIdx !== -1) {
-         const devEmail = String(data[i][devEmailColIdx]).trim();
-         const projTitle = titleColIdx !== -1 ? data[i][titleColIdx] : "a project";
-         
-         if (devEmail && devEmail.includes("@")) {
-           const subject = `New feedback on your project: ${projTitle}`;
-           const body = `Hello,\n\nSomeone just left new feedback on your project (${projTitle}) in the Lab 305 Directory!\n\n`
-                      + `From: ${newComment.name}\n`
-                      + `Message: "${newComment.text}"\n\n`
-                      + (newComment.email ? `They provided their email address so you can reply to this email directly to answer them!\n\n` : `\n\n`)
-                      + `Best,\nLab 305 Project Hub`;
-                      
-           try {
-             if (newComment.email && newComment.email.includes("@")) {
-               MailApp.sendEmail({
-                 to: devEmail,
-                 subject: subject,
-                 body: body,
-                 replyTo: newComment.email
-               });
-             } else {
-               MailApp.sendEmail({
-                 to: devEmail,
-                 subject: subject,
-                 body: body
-               });
-             }
-           } catch(emailErr) {
-             console.error("Failed to send email", emailErr);
+       // Determine developer email
+       let devEmail = "";
+       if (devEmailColIdx !== -1 && data[i][devEmailColIdx]) {
+         const candidate = String(data[i][devEmailColIdx]).trim();
+         if (candidate.includes("@")) {
+           devEmail = candidate;
+         }
+       }
+       
+       // Fallback: search all columns in this row for any valid email address
+       if (!devEmail) {
+         const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+         for (let col = 0; col < data[i].length; col++) {
+           if (col === commentsColIdx) continue;
+           const cellVal = String(data[i][col]).trim();
+           const match = cellVal.match(emailRegex);
+           if (match) {
+             devEmail = match[0];
+             break;
            }
          }
+       }
+
+       // Send email notification to developer if email exists
+       const projTitle = (titleColIdx !== -1 && data[i][titleColIdx]) ? data[i][titleColIdx] : "a project";
+       
+       if (devEmail && devEmail.includes("@")) {
+         const subject = `New feedback on your project: ${projTitle}`;
+         const body = `Hello,\n\nSomeone just left new feedback on your project (${projTitle}) in the Lab 305 Directory!\n\n`
+                    + `From: ${newComment.name}\n`
+                    + `Comment: "${newComment.text}"\n\n`
+                    + (newComment.email ? `User Email for Reply: ${newComment.email}\n(You can reply directly to this email to answer them!)\n\n` : `\n\n`)
+                    + `Best regards,\nLab 305 Project Hub`;
+                    
+         try {
+           const emailOptions = {
+             to: devEmail,
+             subject: subject,
+             body: body
+           };
+           if (newComment.email && newComment.email.includes("@")) {
+             emailOptions.replyTo = newComment.email;
+           }
+           MailApp.sendEmail(emailOptions);
+           console.log("Notification email sent successfully to: " + devEmail);
+         } catch(emailErr) {
+           console.error("Failed to send notification email to " + devEmail + ": " + emailErr.toString());
+         }
+       } else {
+         console.warn("No valid developer email address found for project: " + projTitle);
        }
        break;
     }
   }
+}
+
+/**
+ * Delete a specific comment from a project (Admin only)
+ */
+function deleteComment(internalId, timestamp, text, passcode) {
+  if (!verifyAdmin(passcode)) {
+    throw new Error("Unauthorized action. Invalid admin passcode.");
+  }
+  
+  const sheet = getSheet();
+  const lastCol = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+  
+  let commentsColIdx = headers.findIndex(h => h.toLowerCase() === "comments" || h === "コメント");
+  if (commentsColIdx === -1) return { success: false, error: "No comments column found" };
+  
+  const idColIdx = headers.findIndex(h => h.toLowerCase() === "_internal_id" || h.toLowerCase() === "id" || h.toLowerCase() === "identifier");
+  if (idColIdx === -1) throw new Error("Cannot find ID column");
+  
+  const dataRange = sheet.getDataRange();
+  const data = dataRange.getValues();
+  
+  const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+  
+  for (let i = 1; i < data.length; i++) {
+    const rowId = String(data[i][idColIdx]).trim();
+    if (rowId === String(internalId).trim()) {
+       let comments = [];
+       try {
+         const cellData = data[i][commentsColIdx];
+         if (cellData) comments = JSON.parse(cellData);
+       } catch (e) {
+         comments = [];
+       }
+       
+       comments = comments.filter(c => {
+         if (!c) return false;
+         // Auto remove if older than 30 days
+         if (c.timestamp && c.timestamp < thirtyDaysAgo) return false;
+         
+         // Match by timestamp if present
+         if (timestamp && c.timestamp && String(c.timestamp) === String(timestamp)) return false;
+         // Match by text if timestamp is missing or ambiguous
+         if (text && (c.text === text || (typeof c === 'string' && c === text))) return false;
+         
+         return true;
+       });
+       
+       sheet.getRange(i + 1, commentsColIdx + 1).setValue(JSON.stringify(comments));
+       return { success: true };
+    }
+  }
+  return { success: false, error: "Project not found" };
 }
