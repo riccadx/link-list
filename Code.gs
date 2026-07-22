@@ -409,7 +409,8 @@ function deleteProject(internalId, passcode) {
  * Validate admin passcode
  */
 function verifyAdmin(passcode) {
-  return passcode === ADMIN_PASSCODE;
+  if (!passcode) return false;
+  return String(passcode).trim() === String(ADMIN_PASSCODE).trim();
 }
 
 /**

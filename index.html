@@ -2037,6 +2037,7 @@
         passcode = prompt(t("admin_ph"));
         if (!passcode) return;
       }
+      passcode = String(passcode).trim();
       
       if (!confirm(t("fb_del_confirm"))) return;
       
@@ -2076,7 +2077,7 @@
         .then(res => res.json())
         .then(data => {
            if (!data.success) {
-               throw new Error(data.error || t("err_passcode"));
+               throw new Error(data.error || data.reason || t("err_passcode"));
            }
            handleSuccess();
         })
@@ -2086,7 +2087,10 @@
         });
       } else if (typeof google !== 'undefined' && google.script) {
         google.script.run
-          .withSuccessHandler(handleSuccess)
+          .withSuccessHandler(function(res) {
+             if (res && res.error) alert(res.error);
+             else handleSuccess();
+          })
           .deleteComment(internalId, timestamp, commentText, passcode);
       }
     };
