@@ -476,21 +476,25 @@ function addComment(internalId, commentData) {
        // Save back to sheet (website comments array stays text-only)
        sheet.getRange(i + 1, commentsColIdx + 1).setValue(JSON.stringify(comments));
        
-       // Process attached image for email notification if present
+       // Process attached images for email notification (up to 3 images)
        let attachments = [];
-       if (commentData && commentData.image && commentData.image.data) {
-         try {
-           const splitIdx = commentData.image.data.indexOf("base64,");
-           if (splitIdx !== -1) {
-             const mimeType = commentData.image.type || "image/png";
-             const base64Str = commentData.image.data.substring(splitIdx + 7);
-             const blob = Utilities.newBlob(Utilities.base64Decode(base64Str), mimeType, commentData.image.filename || "attached_photo.png");
-             attachments.push(blob);
+       const rawImages = (commentData && commentData.images) ? commentData.images : (commentData && commentData.image ? [commentData.image] : []);
+       
+       rawImages.slice(0, 3).forEach((img, idx) => {
+         if (img && img.data) {
+           try {
+             const splitIdx = img.data.indexOf("base64,");
+             if (splitIdx !== -1) {
+               const mimeType = img.type || "image/png";
+               const base64Str = img.data.substring(splitIdx + 7);
+               const blob = Utilities.newBlob(Utilities.base64Decode(base64Str), mimeType, img.filename || `attached_photo_${idx + 1}.png`);
+               attachments.push(blob);
+             }
+           } catch(attachErr) {
+             console.error("Error creating image attachment: " + attachErr.toString());
            }
-         } catch(attachErr) {
-           console.error("Error creating image attachment: " + attachErr.toString());
          }
-       }
+       });
        
        // Determine developer email
        let devEmail = "";
@@ -525,7 +529,7 @@ function addComment(internalId, commentData) {
                   + `Comment: "${newComment.text}"\n\n`;
                   
          if (attachments.length > 0) {
-           body += `📎 A photo attachment has been included with this email!\n\n`;
+           body += `📎 ${attachments.length} photo attachment(s) included with this email!\n\n`;
          }
          
          body += (newComment.email ? `User Email for Reply: ${newComment.email}\n(You can reply directly to this email to answer them!)\n\n` : `\n\n`)
