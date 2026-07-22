@@ -1019,11 +1019,11 @@
         <!-- Comment Input Form -->
         <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
           <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
-            <input type="text" id="commentNameInput" class="form-input" placeholder="Your Name" data-i18n="fb_name_ph" style="flex: 1; padding: 0.5rem 0.75rem;">
-            <input type="email" id="commentEmailInput" class="form-input" placeholder="Your Email (Optional)" data-i18n="fb_email_ph" style="flex: 1; padding: 0.5rem 0.75rem;">
+            <input type="text" id="commentNameInput" class="form-input" placeholder="Your Name *" data-i18n="fb_name_ph" style="flex: 1; padding: 0.5rem 0.75rem;">
+            <input type="email" id="commentEmailInput" class="form-input" placeholder="Your Email *" data-i18n="fb_email_ph" style="flex: 1; padding: 0.5rem 0.75rem;">
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <input type="text" id="commentTextInput" class="form-input" placeholder="Leave a comment or suggestion..." data-i18n="fb_text_ph" style="flex: 1;" onkeypress="if(event.key === 'Enter') postComment()">
+            <input type="text" id="commentTextInput" class="form-input" placeholder="Leave a comment or suggestion... *" data-i18n="fb_text_ph" style="flex: 1;" onkeypress="if(event.key === 'Enter') postComment()">
             
             <label for="commentImageInput" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.55rem 0.75rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Attach up to 3 Photos for Developer" onmouseover="this.style.color='var(--primary)'; this.style.borderColor='var(--primary)';" onmouseout="this.style.color='var(--text-secondary)'; this.style.borderColor='var(--border-color)';">
               <i class="fa-solid fa-paperclip"></i>
@@ -1104,9 +1104,9 @@
         
         // Comments UI
         fb_title: "Feedback & Comments",
-        fb_name_ph: "Your Name",
-        fb_email_ph: "Your Email (Optional)",
-        fb_text_ph: "Leave a comment or suggestion...",
+        fb_name_ph: "Your Name *",
+        fb_email_ph: "Your Email *",
+        fb_text_ph: "Leave a comment or suggestion... *",
         fb_post: "Post",
         fb_no_comments: "No comments yet. Be the first to leave feedback!",
         fb_just_now: "Just now",
@@ -1115,6 +1115,10 @@
         fb_fail: "Failed to post comment.",
         fb_del_confirm: "Are you sure you want to delete this comment?",
         fb_del_success: "Comment removed successfully!",
+        fb_name_req: "Please enter your name.",
+        fb_email_req: "Please enter a valid email address.",
+        fb_text_req: "Please enter your comment or suggestion.",
+        fb_all_req: "Please fill in all 3 required sections (Name, Email, Comment).",
         
         // Default Google Sheet Headers (so they translate dynamically)
         "Title": "Title",
@@ -1175,9 +1179,9 @@
         
         // Comments UI
         fb_title: "フィードバック＆コメント",
-        fb_name_ph: "お名前",
-        fb_email_ph: "メール (任意)",
-        fb_text_ph: "コメントや提案を残す...",
+        fb_name_ph: "お名前 *",
+        fb_email_ph: "メールアドレス *",
+        fb_text_ph: "コメントや提案を入力... *",
         fb_post: "投稿",
         fb_no_comments: "まだコメントはありません。最初のフィードバックを残しましょう！",
         fb_just_now: "たった今",
@@ -1186,6 +1190,10 @@
         fb_fail: "コメントの投稿に失敗しました。",
         fb_del_confirm: "このコメントを削除してもよろしいですか？",
         fb_del_success: "コメントを削除しました！",
+        fb_name_req: "お名前を入力してください。",
+        fb_email_req: "有効なメールアドレスを入力してください。",
+        fb_text_req: "コメントまたは提案を入力してください。",
+        fb_all_req: "名前、メールアドレス、コメントの3項目をすべて入力してください。",
         
         // Default Google Sheet Headers (so they translate dynamically)
         "Title": "タイトル",
@@ -2175,12 +2183,31 @@
     window.postComment = function() {
       if (!currentViewProjectId) return;
       
+      const nameInput = document.getElementById("commentNameInput");
+      const emailInput = document.getElementById("commentEmailInput");
       const textInput = document.getElementById("commentTextInput");
+
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim();
       const text = textInput.value.trim();
-      if (!text) return;
-      
-      const name = document.getElementById("commentNameInput").value.trim() || "Anonymous";
-      const email = document.getElementById("commentEmailInput").value.trim() || "";
+
+      if (!name) {
+        alert(t("fb_name_req"));
+        nameInput.focus();
+        return;
+      }
+
+      if (!email || !email.includes("@")) {
+        alert(t("fb_email_req"));
+        emailInput.focus();
+        return;
+      }
+
+      if (!text) {
+        alert(t("fb_text_req"));
+        textInput.focus();
+        return;
+      }
       
       const btn = document.getElementById("postCommentBtn");
       btn.disabled = true;
