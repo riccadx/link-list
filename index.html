@@ -940,27 +940,8 @@
         <button class="btn btn-primary" onclick="attemptAdminLogin()" style="width: 100%; justify-content: center;" data-i18n="btn_unlock">Unlock Admin Mode</button>
       </div>
 
-      <!-- Live Admin Dashboard (shown only after validation) -->
-      <div id="adminDashboardBox" style="display: none;">
-        <div class="control-panel">
-          <div class="search-wrapper">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" class="search-input" id="adminSearchInput" placeholder="Search and manage all systems..." data-i18n="search_admin">
-          </div>
-          <div class="filters-wrapper">
-            <div class="category-tabs" id="adminCategoryTabs">
-              <button class="category-tab active" data-category="all" data-i18n="all_sys">All Systems</button>
-            </div>
-            <div style="font-size: 0.85rem; color: var(--text-muted);" id="adminResultsCounter">
-              0 systems
-            </div>
-          </div>
-        </div>
-
-        <div class="project-grid" id="adminProjectGrid">
-          <!-- Injected by JavaScript -->
-        </div>
-      </div>
+      <!-- Dynamic Admin Dashboard Mount (No admin HTML exists in the page until authenticated) -->
+      <div id="adminDashboardMount"></div>
     </div>
 
   </div>
@@ -1095,7 +1076,12 @@
         toast_delete: "Entry permanently deleted from spreadsheet.",
         toast_save: "System changes successfully saved!",
         toast_admin: "Admin access granted.",
+        toast_locked: "Admin mode locked.",
+        toast_tamper: "Unauthorized access blocked.",
         err_passcode: "Invalid passcode.",
+        err_lockout: "Too many failed attempts. Please wait {sec} seconds before trying again.",
+        btn_lock: "Lock Admin Mode",
+        badge_admin: "Authenticated Admin Session",
         confirm_del: "Are you sure you want to permanently delete this system link from Google Sheets?",
         edit_who: "Your Name",
         edit_what: "Change Summary",
@@ -1170,7 +1156,12 @@
         toast_delete: "スプレッドシートからエントリが完全に削除されました。",
         toast_save: "システムの変更が正常に保存されました！",
         toast_admin: "管理者アクセスが許可されました。",
+        toast_locked: "管理者モードをロックしました。",
+        toast_tamper: "不正なアクセスがブロックされました。",
         err_passcode: "パスコードが無効です。",
+        err_lockout: "試行回数が多すぎます。再試行するまであと{sec}秒お待ちください。",
+        btn_lock: "管理者モードをロック",
+        badge_admin: "認証済み管理者セッション",
         confirm_del: "Googleスプレッドシートからこのシステムリンクを完全に削除してもよろしいですか？",
         edit_who: "お名前",
         edit_what: "変更の概要",
@@ -1221,7 +1212,7 @@
       if (headersList.length > 0) {
         buildDynamicForms();
         renderSubmitterGrid();
-        if (isAdminUnlocked) renderAdminGrid();
+        if (AdminAuth.isAuthenticated()) mountAdminDashboard();
       }
     }
     
@@ -1250,8 +1241,182 @@
 
     let headersList = [];
     let selectedAdminCategory = "all";
-    let isAdminUnlocked = false;
-    let adminPasscodeValue = "";
+
+    // Encapsulated Admin Security Module (Private closure - not exposed on window)
+    const AdminAuth = (function() {
+      let _passcode = "";
+      let _authenticated = false;
+      let _failedAttempts = 0;
+      let _lockoutUntil = 0;
+
+      // Try restoring valid session from sessionStorage
+      try {
+        const saved = sessionStorage.getItem("_lab305_admin_session");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.expiry && Date.now() < parsed.expiry && parsed.token) {
+            _passcode = atob(parsed.token);
+            _authenticated = true;
+          } else {
+            sessionStorage.removeItem("_lab305_admin_session");
+          }
+        }
+      } catch(e) {}
+
+      return {
+        isAuthenticated: function() {
+          return _authenticated && Boolean(_passcode);
+        },
+        getPasscode: function() {
+          if (!_authenticated) return "";
+          return _passcode;
+        },
+        login: function(passcode, hours = 4) {
+          _passcode = String(passcode).trim();
+          _authenticated = true;
+          _failedAttempts = 0;
+          try {
+            sessionStorage.setItem("_lab305_admin_session", JSON.stringify({
+              token: btoa(_passcode),
+              expiry: Date.now() + (hours * 60 * 60 * 1000)
+            }));
+          } catch(e) {}
+        },
+        logout: function() {
+          _passcode = "";
+          _authenticated = false;
+          try {
+            sessionStorage.removeItem("_lab305_admin_session");
+          } catch(e) {}
+        },
+        recordFailure: function() {
+          _failedAttempts++;
+          if (_failedAttempts >= 3) {
+            _lockoutUntil = Date.now() + (30 * 1000); // 30s lockout
+          }
+        },
+        isLockedOut: function() {
+          if (Date.now() < _lockoutUntil) {
+            return Math.ceil((_lockoutUntil - Date.now()) / 1000);
+          }
+          return 0;
+        }
+      };
+    })();
+
+    // Dynamic Mount & Unmount for Admin Dashboard
+    function mountAdminDashboard() {
+      const mount = document.getElementById("adminDashboardMount");
+      if (!mount) return;
+      
+      mount.innerHTML = `
+        <div id="adminDashboardBox">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding: 0.75rem 1rem; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.35rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-shield-halved"></i> <span>${t("badge_admin")}</span>
+              </span>
+            </div>
+            <button class="btn btn-secondary" onclick="lockAdminMode()" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+              <i class="fa-solid fa-lock"></i> <span>${t("btn_lock")}</span>
+            </button>
+          </div>
+
+          <div class="control-panel">
+            <div class="search-wrapper">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input type="text" class="search-input" id="adminSearchInput" placeholder="${t("search_admin")}">
+            </div>
+            <div class="filters-wrapper">
+              <div class="category-tabs" id="adminCategoryTabs">
+                <button class="category-tab active" data-category="all">${t("all_sys")}</button>
+              </div>
+              <div style="font-size: 0.85rem; color: var(--text-muted);" id="adminResultsCounter">
+                0 systems
+              </div>
+            </div>
+          </div>
+
+          <div class="project-grid" id="adminProjectGrid">
+          </div>
+        </div>
+      `;
+
+      const searchInput = document.getElementById("adminSearchInput");
+      if (searchInput) {
+        searchInput.addEventListener("input", internalRenderAdminGrid);
+      }
+      internalRenderAdminGrid();
+    }
+
+    function unmountAdminDashboard() {
+      const mount = document.getElementById("adminDashboardMount");
+      if (mount) mount.innerHTML = "";
+      const authBox = document.getElementById("adminAuthBox");
+      if (authBox) authBox.style.display = "block";
+    }
+
+    // Security Gatekeeper: enforces UI and state consistency
+    function enforceAdminSecurity() {
+      if (!AdminAuth.isAuthenticated()) {
+        unmountAdminDashboard();
+        return false;
+      }
+      return true;
+    }
+
+    window.lockAdminMode = function() {
+      AdminAuth.logout();
+      unmountAdminDashboard();
+      showToast(t("toast_locked"));
+    };
+
+    // Decoy protection: freeze global names that attackers try to run in DevTools Console
+    try {
+      Object.defineProperty(window, "isAdminUnlocked", {
+        get: function() { return false; },
+        set: function() {
+          console.warn("Security Alert: Blocked unauthorized variable tampering.");
+          return false;
+        },
+        configurable: false
+      });
+      Object.defineProperty(window, "renderAdminGrid", {
+        value: function() {
+          console.warn("Security Alert: Blocked unauthorized execution of renderAdminGrid.");
+          return false;
+        },
+        writable: false,
+        configurable: false
+      });
+    } catch(e) {}
+
+    // Active DevTools & Inspection Blockers
+    document.addEventListener("contextmenu", function(e) {
+      e.preventDefault();
+      return false;
+    }, true);
+
+    document.addEventListener("keydown", function(e) {
+      // F12 key
+      if (e.key === "F12" || e.keyCode === 123) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+      // Ctrl+Shift+I / J / C (Windows/Linux) or Cmd+Opt+I / J / C (Mac)
+      if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+      // View source (Ctrl+U / Cmd+Opt+U)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, true);
 
     function toggleTheme() {
       const body = document.documentElement;
@@ -1273,6 +1438,12 @@
       } else {
         document.getElementById('tabAdmin').classList.add('active');
         document.getElementById('adminView').style.display = 'block';
+        if (AdminAuth.isAuthenticated()) {
+          document.getElementById('adminAuthBox').style.display = 'none';
+          mountAdminDashboard();
+        } else {
+          unmountAdminDashboard();
+        }
       }
     }
 
@@ -1303,7 +1474,7 @@
             
             buildDynamicForms();
             renderSubmitterGrid();
-            if (isAdminUnlocked) renderAdminGrid();
+            if (AdminAuth.isAuthenticated()) internalRenderAdminGrid();
           })
           .catch(err => {
             toggleLoading(false);
@@ -1318,7 +1489,7 @@
             
             buildDynamicForms();
             renderSubmitterGrid();
-            if (isAdminUnlocked) renderAdminGrid();
+            if (AdminAuth.isAuthenticated()) internalRenderAdminGrid();
           })
           .withFailureHandler(function(err) {
             toggleLoading(false);
@@ -1474,11 +1645,36 @@
     }
 
     function attemptAdminLogin() {
-      const inputVal = document.getElementById("adminPasscodeInput").value;
+      const inputEl = document.getElementById("adminPasscodeInput");
+      const inputVal = (inputEl.value || "").trim();
       if (!inputVal) return;
       
+      const lockoutSecs = AdminAuth.isLockedOut();
+      if (lockoutSecs > 0) {
+        alert(t("err_lockout").replace("{sec}", lockoutSecs));
+        return;
+      }
+
       toggleLoading(true, t("verifying"));
       
+      const handleLoginSuccess = () => {
+        AdminAuth.login(inputVal);
+        inputEl.value = "";
+        document.getElementById("adminAuthBox").style.display = "none";
+        mountAdminDashboard();
+        showToast(t("toast_admin"));
+      };
+
+      const handleLoginFail = () => {
+        AdminAuth.recordFailure();
+        const remaining = AdminAuth.isLockedOut();
+        if (remaining > 0) {
+          alert(t("err_lockout").replace("{sec}", remaining));
+        } else {
+          alert(t("err_passcode"));
+        }
+      };
+
       if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
         fetch(SCRIPT_URL, {
           method: 'POST',
@@ -1487,15 +1683,10 @@
         .then(res => res.json())
         .then(data => {
           toggleLoading(false);
-          if (data.isValid) {
-            isAdminUnlocked = true;
-            adminPasscodeValue = inputVal;
-            document.getElementById("adminAuthBox").style.display = "none";
-            document.getElementById("adminDashboardBox").style.display = "block";
-            renderAdminGrid();
-            showToast(t("toast_admin"));
+          if (data && data.isValid) {
+            handleLoginSuccess();
           } else {
-            alert(t("err_passcode"));
+            handleLoginFail();
           }
         })
         .catch(err => {
@@ -1507,14 +1698,9 @@
           .withSuccessHandler(function(isValid) {
             toggleLoading(false);
             if (isValid) {
-              isAdminUnlocked = true;
-              adminPasscodeValue = inputVal;
-              document.getElementById("adminAuthBox").style.display = "none";
-              document.getElementById("adminDashboardBox").style.display = "block";
-              renderAdminGrid();
-              showToast(t("toast_admin"));
+              handleLoginSuccess();
             } else {
-              alert(t("err_passcode"));
+              handleLoginFail();
             }
           })
           .withFailureHandler(function(err) {
@@ -1523,13 +1709,8 @@
           })
           .verifyAdmin(inputVal);
       } else {
-         toggleLoading(false);
-         // Local fallback for UI testing without backend
-         isAdminUnlocked = true;
-         adminPasscodeValue = "dummy";
-         document.getElementById("adminAuthBox").style.display = "none";
-         document.getElementById("adminDashboardBox").style.display = "block";
-         renderAdminGrid();
+        toggleLoading(false);
+        alert("Backend not configured. Admin authentication cannot be bypassed.");
       }
     }
     
@@ -1692,9 +1873,15 @@
       applyTranslations();
     }
 
-    function renderAdminGrid() {
+    function internalRenderAdminGrid() {
+      if (!enforceAdminSecurity()) {
+        return;
+      }
+
       const grid = document.getElementById("adminProjectGrid");
-      const searchQuery = document.getElementById("adminSearchInput").value.toLowerCase();
+      if (!grid) return;
+      const searchInput = document.getElementById("adminSearchInput");
+      const searchQuery = searchInput ? searchInput.value.toLowerCase() : "";
       grid.innerHTML = "";
 
       // Ensure grid uses full width for table
@@ -1848,7 +2035,18 @@
     };
 
     window.deleteProject = function(internalId) {
+      if (!enforceAdminSecurity()) {
+        alert("Access Denied: Administrator authentication required.");
+        return;
+      }
+
       if (!confirm(t("confirm_del"))) {
+        return;
+      }
+
+      const passcode = AdminAuth.getPasscode();
+      if (!passcode) {
+        alert("Access Denied: Missing admin credentials.");
         return;
       }
 
@@ -1857,7 +2055,7 @@
       if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
         fetch(SCRIPT_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'delete', internalId: internalId, adminPasscode: adminPasscodeValue })
+          body: JSON.stringify({ action: 'delete', internalId: internalId, adminPasscode: passcode })
         })
         .then(res => res.json())
         .then(data => {
@@ -1879,7 +2077,7 @@
             toggleLoading(false);
             alert("Delete Failed: " + err.message);
           })
-          .deleteProject(internalId, adminPasscodeValue);
+          .deleteProject(internalId, passcode);
       }
     };
 
@@ -1897,6 +2095,11 @@
     };
 
     window.openEditModal = function(internalId) {
+      if (!enforceAdminSecurity()) {
+        alert("Access Denied: Administrator authentication required.");
+        return;
+      }
+
       const p = projects.find(proj => proj._internal_id === internalId);
       if (!p) return;
       currentEditProject = p;
@@ -2047,8 +2250,8 @@
 
     window.deleteComment = function(internalId, timestamp, textEncoded) {
       const commentText = decodeURIComponent(textEncoded || "");
-      let passcode = adminPasscodeValue;
-      if (!passcode || passcode === "dummy") {
+      let passcode = AdminAuth.getPasscode();
+      if (!passcode) {
         passcode = prompt(t("admin_ph"));
         if (!passcode) return;
       }
@@ -2341,13 +2544,24 @@
       projectData["Last Edited By"] = document.getElementById("editWhoInput").value.trim();
       projectData["Edit Log"] = finalSummary.trim();
 
+      if (!enforceAdminSecurity()) {
+        alert("Access Denied: Administrator authentication required.");
+        return;
+      }
+
+      const adminPasscode = AdminAuth.getPasscode();
+      if (!adminPasscode) {
+        alert("Access Denied: Missing administrator credentials.");
+        return;
+      }
+
       toggleLoading(true, t("connecting"));
       closeEditModal();
 
       if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
         fetch(SCRIPT_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'save', data: projectData })
+          body: JSON.stringify({ action: 'save', data: projectData, adminPasscode: adminPasscode })
         })
         .then(res => res.json())
         .then(data => {
@@ -2369,17 +2583,17 @@
             toggleLoading(false);
             alert("Save Failed: " + err.message);
           })
-          .saveProject(projectData);
+          .saveProject(projectData, adminPasscode);
       }
     });
 
     document.addEventListener("DOMContentLoaded", () => {
+      enforceAdminSecurity();
       fetchAllProjects();
       document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
       document.getElementById("langToggleBtn").addEventListener("click", toggleLanguage);
       applyTranslations();
       document.getElementById("subSearchInput").addEventListener("input", renderSubmitterGrid);
-      document.getElementById("adminSearchInput").addEventListener("input", renderAdminGrid);
 
       // Pull-to-refresh for mobile
       let touchstartY = 0;

@@ -43,7 +43,7 @@ function doPost(e) {
     const payload = JSON.parse(e.postData.contents);
     
     if (payload.action === 'save') {
-      saveProject(payload.data);
+      saveProject(payload.data, payload.adminPasscode);
       return ContentService.createTextOutput(JSON.stringify({ success: true }))
         .setMimeType(ContentService.MimeType.JSON);
     } 
@@ -264,7 +264,7 @@ function uploadBase64ToDrive(base64Data, filename) {
 /**
  * Save or update a project row
  */
-function saveProject(project) {
+function saveProject(project, adminPasscode) {
   try {
     // Intercept base64 images and upload to Drive
     Object.keys(project).forEach(k => {
@@ -319,6 +319,11 @@ function saveProject(project) {
     }
     
     if (targetRow !== -1) {
+      // Modifying an existing row: MUST BE AUTHENTICATED
+      if (!verifyAdmin(adminPasscode)) {
+        throw new Error("Unauthorized action. Administrator passcode is required to modify existing projects.");
+      }
+
       // Edit existing row
       headers.forEach((h, i) => {
         // If the header exists and we have data for it, update it (or clear it)
@@ -369,8 +374,8 @@ function saveProject(project) {
  * Delete a project row by ID dynamically
  */
 function deleteProject(internalId, passcode) {
-  if (passcode !== ADMIN_PASSCODE) {
-    throw new Error("Unauthorized action.");
+  if (!verifyAdmin(passcode)) {
+    throw new Error("Unauthorized action. Invalid admin passcode.");
   }
   
   try {
