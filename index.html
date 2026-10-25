@@ -109,7 +109,7 @@
     .app-container {
       max-width: 1400px;
       margin: 0 auto;
-      padding: 2.5rem 1.5rem;
+      padding: 2.5rem 1.5rem 140px 1.5rem; /* Generous clearance so the fixed bottom-nav never hides the last link */
       position: relative;
       z-index: 1;
     }
@@ -851,8 +851,102 @@
         font-size: 1.5rem;
       }
       .app-container {
-        padding-bottom: 5rem;
+        padding-bottom: 160px; /* Safe mobile clearance for bottom-nav */
       }
+    }
+
+    /* Admin Table Scroll Container */
+    .admin-table-wrapper {
+      position: relative;
+      max-height: 68vh;
+      overflow-y: auto;
+      overflow-x: auto;
+      margin-top: 1rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      background: var(--bg-card);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-table-wrapper::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    .admin-table-wrapper::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+    }
+
+    .admin-table-wrapper::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 8px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    .admin-table-wrapper::-webkit-scrollbar-thumb:hover {
+      background: #2563eb;
+    }
+
+    .admin-table-wrapper thead th {
+      position: sticky;
+      top: 0;
+      background: var(--bg-secondary);
+      z-index: 10;
+      border-bottom: 2px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(8px);
+    }
+
+    .admin-table-wrapper tbody tr:hover {
+      background: rgba(92, 147, 237, 0.06);
+    }
+
+    /* Admin Quick Scroll FAB */
+    .admin-scroll-fab {
+      position: fixed;
+      right: 20px;
+      bottom: 92px;
+      z-index: 95;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: fadeInFab 0.3s ease;
+    }
+
+    @keyframes fadeInFab {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .admin-scroll-fab-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #ffffff;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      transition: all 0.2s ease;
+    }
+
+    .admin-scroll-fab-btn:hover {
+      transform: translateY(-2px) scale(1.08);
+      box-shadow: 0 8px 24px rgba(92, 147, 237, 0.45);
+      background: #2563eb;
+    }
+
+    .admin-scroll-fab-btn:active {
+      transform: scale(0.96);
     }
   </style>
 </head>
@@ -1106,6 +1200,11 @@
         fb_text_req: "Please enter your comment or suggestion.",
         fb_all_req: "Please fill in all 3 required sections (Name, Email, Comment).",
         
+        // Quick Scroll UI
+        jump_last: "Jump to Last Link",
+        back_top: "Back to Top",
+        end_of_list: "Showing all {count} systems (Reached end of list)",
+        
         // Default Google Sheet Headers (so they translate dynamically)
         "Title": "Title",
         "System Name": "System Name",
@@ -1186,6 +1285,11 @@
         fb_text_req: "コメントまたは提案を入力してください。",
         fb_all_req: "名前、メールアドレス、コメントの3項目をすべて入力してください。",
         
+        // Quick Scroll UI
+        jump_last: "最新リンクへ移動",
+        back_top: "トップへ戻る",
+        end_of_list: "全 {count} 件のシステムを表示中（リスト末尾）",
+        
         // Default Google Sheet Headers (so they translate dynamically)
         "Title": "タイトル",
         "System Name": "システム名",
@@ -1216,8 +1320,14 @@
       }
     }
     
-    function t(key) {
-      return i18n[currentLang][key] || key;
+    function t(key, params) {
+      let text = (i18n[currentLang] && i18n[currentLang][key]) ? i18n[currentLang][key] : key;
+      if (params && typeof params === 'object') {
+        Object.keys(params).forEach(p => {
+          text = text.replace(new RegExp(`\\{${p}\\}`, 'g'), params[p]);
+        });
+      }
+      return text;
     }
 
     function applyTranslations() {
@@ -1312,16 +1422,24 @@
       if (!mount) return;
       
       mount.innerHTML = `
-        <div id="adminDashboardBox">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding: 0.75rem 1rem; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border-color);">
+        <div id="adminDashboardBox" style="margin-bottom: 5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem; padding: 0.85rem 1.25rem; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
             <div style="display: flex; align-items: center; gap: 0.6rem;">
               <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.35rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem;">
                 <i class="fa-solid fa-shield-halved"></i> <span>${t("badge_admin")}</span>
               </span>
             </div>
-            <button class="btn btn-secondary" onclick="lockAdminMode()" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-              <i class="fa-solid fa-lock"></i> <span>${t("btn_lock")}</span>
-            </button>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-secondary" onclick="scrollAdminTo('bottom')" title="Jump directly to the last link" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                <i class="fa-solid fa-arrow-down"></i> <span>${t("jump_last")}</span>
+              </button>
+              <button class="btn btn-secondary" onclick="scrollAdminTo('top')" title="Scroll back to top" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                <i class="fa-solid fa-arrow-up"></i> <span>${t("back_top")}</span>
+              </button>
+              <button class="btn btn-secondary" onclick="lockAdminMode()" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                <i class="fa-solid fa-lock"></i> <span>${t("btn_lock")}</span>
+              </button>
+            </div>
           </div>
 
           <div class="control-panel">
@@ -1344,6 +1462,23 @@
         </div>
       `;
 
+      // Mount Quick Scroll Floating Action Buttons
+      let fab = document.getElementById("adminScrollFab");
+      if (!fab) {
+        fab = document.createElement("div");
+        fab.className = "admin-scroll-fab";
+        fab.id = "adminScrollFab";
+        fab.innerHTML = `
+          <button class="admin-scroll-fab-btn" onclick="scrollAdminTo('top')" title="Scroll to Top">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+          <button class="admin-scroll-fab-btn" onclick="scrollAdminTo('bottom')" title="Jump to Last Link at Bottom">
+            <i class="fa-solid fa-arrow-down"></i>
+          </button>
+        `;
+        document.body.appendChild(fab);
+      }
+
       const searchInput = document.getElementById("adminSearchInput");
       if (searchInput) {
         searchInput.addEventListener("input", internalRenderAdminGrid);
@@ -1354,9 +1489,29 @@
     function unmountAdminDashboard() {
       const mount = document.getElementById("adminDashboardMount");
       if (mount) mount.innerHTML = "";
+      const fab = document.getElementById("adminScrollFab");
+      if (fab) fab.remove();
       const authBox = document.getElementById("adminAuthBox");
       if (authBox) authBox.style.display = "block";
     }
+
+    window.scrollAdminTo = function(direction) {
+      const wrapper = document.getElementById("adminTableScrollWrapper");
+      const lastRow = document.getElementById("adminLastProjectRow");
+      if (direction === 'bottom') {
+        if (lastRow) {
+          lastRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (wrapper) {
+          wrapper.scrollTo({ top: wrapper.scrollHeight, behavior: 'smooth' });
+        }
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      } else {
+        if (wrapper) {
+          wrapper.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
 
     // Security Gatekeeper: enforces UI and state consistency
     function enforceAdminSecurity() {
@@ -1920,20 +2075,21 @@
         return;
       }
       
-      // Render as a table for Admin
-      let tableHtml = `<div style="overflow-x: auto; margin-top: 1rem;"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--bg-card); border-radius: 12px;">`;
+      // Render as a table for Admin inside high-performance scroll wrapper
+      let tableHtml = `<div class="admin-table-wrapper" id="adminTableScrollWrapper"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--bg-card); min-width: 650px;">`;
       
-      tableHtml += `<thead><tr style="border-bottom: 1px solid var(--border-color);">`;
+      tableHtml += `<thead><tr style="border-bottom: 2px solid var(--border-color);">`;
       headersList.forEach(h => {
          const hLow = h.toLowerCase();
          if (hLow === "id" || hLow === 'edit log' || hLow === 'last edited by') return;
          tableHtml += `<th style="padding: 1rem; font-weight: 600;">${t(h)}</th>`;
       });
-      tableHtml += `<th style="padding: 1rem; font-weight: 600;" data-i18n="actions">${t("actions")}</th>`;
+      tableHtml += `<th style="padding: 1rem; font-weight: 600; text-align: right;" data-i18n="actions">${t("actions")}</th>`;
       tableHtml += `</tr></thead><tbody>`;
       
-      filtered.forEach(p => {
-         tableHtml += `<tr style="border-bottom: 1px solid var(--border-color);">`;
+      filtered.forEach((p, index) => {
+         const isLastRow = index === filtered.length - 1;
+         tableHtml += `<tr ${isLastRow ? 'id="adminLastProjectRow"' : ''} style="border-bottom: 1px solid var(--border-color); ${isLastRow ? 'background: rgba(92, 147, 237, 0.05);' : ''}">`;
          headersList.forEach(h => {
             const hLow = h.toLowerCase();
             if (hLow === "id" || hLow === 'edit log' || hLow === 'last edited by') return;
@@ -1946,14 +2102,14 @@
             if (isLogo && val && String(val).length > 10) {
                val = `<img src="${val}" style="height: 32px; width: 32px; object-fit: cover; border-radius: 4px;">`;
             } else if (isUrl(val)) {
-               val = `<a href="${val}" target="_blank" style="color: var(--primary)">${t("link")}</a>`;
+               val = `<a href="${val}" target="_blank" style="color: var(--primary); text-decoration: underline; font-weight: 500;">${t("link")} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.72rem;"></i></a>`;
             }
-            tableHtml += `<td style="padding: 1rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${val}</td>`;
+            tableHtml += `<td style="padding: 1rem; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${val}</td>`;
          });
          
          tableHtml += `
-            <td style="padding: 1rem;">
-               <div class="card-actions">
+            <td style="padding: 1rem; text-align: right;">
+               <div class="card-actions" style="justify-content: flex-end;">
                   <button class="action-btn edit-btn" onclick="openEditModal('${p._internal_id}')" title="Edit Entry">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
@@ -1966,7 +2122,21 @@
          tableHtml += `</tr>`;
       });
       
-      tableHtml += `</tbody></table></div>`;
+      tableHtml += `</tbody></table>`;
+      
+      // End of List footer with status badge and Back to Top action
+      tableHtml += `
+        <div style="padding: 1rem 1.25rem; background: var(--bg-secondary); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
+            <span>${t("end_of_list", { count: filtered.length })}</span>
+          </div>
+          <button class="btn btn-secondary" onclick="scrollAdminTo('top')" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+            <i class="fa-solid fa-arrow-up"></i> <span>${t("back_top")}</span>
+          </button>
+        </div>
+      </div>`;
+
       grid.innerHTML = tableHtml;
       applyTranslations();
     }
