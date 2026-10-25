@@ -3,22 +3,180 @@
  * Lab 305 Unified Directory
  */
 
-// Define admin passcode (change this as needed)
-const ADMIN_PASSCODE = "admin305";
-
-// If you created this script directly in script.google.com (standalone),
-// enter your Google Sheet's ID below (found in the sheet's browser URL).
-// Example: const SPREADSHEET_ID = "1aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890";
+// Bound Google Sheet ID
 const SPREADSHEET_ID = "1HH_vr4eXt_1z7iiaEuAiXl4XI1EXgolTO-uBRoYhx80";
+
+// Salt used for one-way SHA-256 hash verification
+const PASSCODE_SALT = "Lab305_Unified_Directory_Salt";
+
+// One-way cryptographic hash fallback (Plaintext password is NEVER stored in code or sheets)
+const DEFAULT_PASSCODE_HASH = "DQothiIWFjLRjKb9ZZ7l4QwQ9KOSu+8koUDqiAXDz/E=";
+
+/**
+ * Hash a passcode using SHA-256 with project salt
+ */
+function hashPasscode(passcode) {
+  if (!passcode) return "";
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(passcode).trim() + PASSCODE_SALT,
+    Utilities.Charset.UTF_8
+  );
+  return Utilities.base64Encode(digest);
+}
+
+/**
+ * Retrieve the active admin passcode hash from Script Properties or fallback
+ */
+function getAdminPasscodeHash() {
+  try {
+    const hash = PropertiesService.getScriptProperties().getProperty("ADMIN_PASSCODE_HASH");
+    if (hash && hash.trim()) return hash.trim();
+    
+    const plain = PropertiesService.getScriptProperties().getProperty("ADMIN_PASSCODE");
+    if (plain && plain.trim()) return hashPasscode(plain.trim());
+  } catch(e) {}
+  return DEFAULT_PASSCODE_HASH;
+}
+
+/**
+ * Admin utility: Update admin passcode securely in Script Properties.
+ * Run this function from the Apps Script editor to change your password without ever touching Code.gs or Google Sheets.
+ * Example: setAdminPasscode("myNewSecurePassword123");
+ */
+function setAdminPasscode(newPasscode) {
+  if (!newPasscode || typeof newPasscode !== 'string') {
+    throw new Error("Please specify a valid string passcode: setAdminPasscode('your_new_password')");
+  }
+  const hash = hashPasscode(newPasscode);
+  PropertiesService.getScriptProperties().setProperty("ADMIN_PASSCODE_HASH", hash);
+  // Remove any legacy plaintext property
+  try { PropertiesService.getScriptProperties().deleteProperty("ADMIN_PASSCODE"); } catch(e) {}
+  console.log("Admin passcode successfully hashed and stored in Google Cloud Script Properties!");
+  return true;
+}
+
+/**
+ * Admin utility: Sanitize Google Sheet columns.
+ * Permanently removes any column from the Google Sheet whose header contains "password", "passcode", "token", "secret", or "credential".
+ * Run this function from the Apps Script editor to ensure your Google Sheet never displays or holds admin credentials.
+ */
+function sanitizeSheetColumns() {
+  const sheet = getSheet();
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    console.log("Sheet has no columns.");
+    return "Sheet is empty.";
+  }
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+  const sensitivePatterns = ["passcode", "password", "token", "secret", "credential"];
+  let removedCount = 0;
+  for (let i = headers.length - 1; i >= 0; i--) {
+    const h = headers[i].toLowerCase();
+    if (sensitivePatterns.some(p => h.includes(p))) {
+      console.log("Purging sensitive column from Google Sheet: " + headers[i]);
+      sheet.deleteColumn(i + 1);
+      removedCount++;
+    }
+  }
+  console.log("Sanitization complete. Purged " + removedCount + " sensitive column(s).");
+  return "Purged " + removedCount + " sensitive column(s) from Google Sheet.";
+}
+
+/**
+ * Generate a cryptographically signed HMAC session token
+ */
+function generateAdminToken() {
+  const timestamp = Date.now().toString();
+  const nonce = Utilities.getUuid().substring(0, 8);
+  const data = timestamp + ":" + nonce;
+  const secret = getAdminPasscodeHash();
+  const rawSig = Utilities.computeHmacSignature(Utilities.MacAlgorithm.HMAC_SHA_256, data, secret);
+  const signature = Utilities.base64EncodeWebSafe(rawSig);
+  const token = data + ":" + signature;
+  
+  try {
+    CacheService.getScriptCache().put("SESSION_" + token, "valid", 14400); // 4 hours
+  } catch(e) {}
+  
+  return token;
+}
+
+/**
+ * Verify HMAC session token
+ */
+function verifyAdminToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  
+  // Check revocation cache
+  try {
+    const isRevoked = CacheService.getScriptCache().get("REVOKED_" + token);
+    if (isRevoked === "true") return false;
+  } catch(e) {}
+  
+  // Fast path: cached valid session
+  try {
+    const cached = CacheService.getScriptCache().get("SESSION_" + token);
+    if (cached === "valid") return true;
+  } catch(e) {}
+  
+  // Signature verification
+  const parts = token.split(":");
+  if (parts.length !== 3) return false;
+  
+  const timestamp = parseInt(parts[0], 10);
+  if (isNaN(timestamp)) return false;
+  
+  // 4 hour expiration window
+  const fourHours = 4 * 60 * 60 * 1000;
+  if (Date.now() - timestamp > fourHours || timestamp > Date.now() + 60000) {
+    return false;
+  }
+  
+  const data = parts[0] + ":" + parts[1];
+  const secret = getAdminPasscodeHash();
+  const rawSig = Utilities.computeHmacSignature(Utilities.MacAlgorithm.HMAC_SHA_256, data, secret);
+  const expectedSig = Utilities.base64EncodeWebSafe(rawSig);
+  
+  if (parts[2] === expectedSig) {
+    try {
+      CacheService.getScriptCache().put("SESSION_" + token, "valid", 14400);
+    } catch(e) {}
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Revoke an admin session token on logout
+ */
+function revokeAdminToken(token) {
+  if (!token) return;
+  try {
+    CacheService.getScriptCache().remove("SESSION_" + token);
+    CacheService.getScriptCache().put("REVOKED_" + token, "true", 14400);
+  } catch(e) {}
+}
+
+/**
+ * Validate either a signed session token or legacy passcode
+ */
+function verifyAdminOrToken(credential) {
+  if (!credential) return false;
+  if (verifyAdminToken(credential)) return true;
+  return verifyAdmin(credential);
+}
 
 /**
  * Serve the web page
  */
 function doGet(e) {
-  // If accessed as an API, return JSON data
+  // If accessed as an API, return JSON data (filters protected columns unless token provided)
   if (e && e.parameter && e.parameter.api === 'true') {
     try {
-      const data = getProjects();
+      const token = e.parameter.token || e.parameter.authToken;
+      const data = getProjects(token);
       return ContentService.createTextOutput(JSON.stringify(data))
         .setMimeType(ContentService.MimeType.JSON);
     } catch (err) {
@@ -41,22 +199,49 @@ function doGet(e) {
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
+    const token = payload.authToken || payload.adminToken || payload.adminPasscode;
+    
+    // Login / Authentication handshake: produces signed token, NEVER persists password
+    if (payload.action === 'login' || payload.action === 'verify') {
+      const isValid = verifyAdmin(payload.passcode);
+      if (isValid) {
+        const sessionToken = generateAdminToken();
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true,
+          isValid: true,
+          token: sessionToken,
+          expiresIn: 14400
+        })).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false,
+          isValid: false,
+          error: "Invalid administrator credentials."
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    if (payload.action === 'logout') {
+      revokeAdminToken(token);
+      return ContentService.createTextOutput(JSON.stringify({ success: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (payload.action === 'getProjects') {
+      const data = getProjects(token);
+      return ContentService.createTextOutput(JSON.stringify(data))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     
     if (payload.action === 'save') {
-      saveProject(payload.data, payload.adminPasscode);
+      saveProject(payload.data, token);
       return ContentService.createTextOutput(JSON.stringify({ success: true }))
         .setMimeType(ContentService.MimeType.JSON);
     } 
     
     if (payload.action === 'delete') {
-      deleteProject(payload.internalId, payload.adminPasscode);
+      deleteProject(payload.internalId, token);
       return ContentService.createTextOutput(JSON.stringify({ success: true }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    if (payload.action === 'verify') {
-      const isValid = verifyAdmin(payload.passcode);
-      return ContentService.createTextOutput(JSON.stringify({ success: true, isValid: isValid }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -73,7 +258,7 @@ function doPost(e) {
     }
     
     if (payload.action === 'deleteComment') {
-      deleteComment(payload.internalId, payload.commentTimestamp, payload.commentText, payload.adminPasscode);
+      deleteComment(payload.internalId, payload.commentTimestamp, payload.commentText, token);
       return ContentService.createTextOutput(JSON.stringify({ success: true }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -170,8 +355,9 @@ function getSheet() {
 /**
  * Fetch all projects dynamically reading headers
  */
-function getProjects() {
+function getProjects(authToken) {
   try {
+    const isAdmin = verifyAdminOrToken(authToken);
     const sheet = getSheet();
     const lastRow = sheet.getLastRow();
     const lastCol = sheet.getLastColumn();
@@ -182,8 +368,22 @@ function getProjects() {
       headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
     }
     
+    // Absolute ban on exposing any passwords, secrets, or auth tokens to ANY client
+    const isSensitiveHeader = (h) => {
+      const low = h.toLowerCase();
+      return low.includes("passcode") || low.includes("password") || low.includes("token") || low.includes("secret") || low.includes("credential");
+    };
+
+    // Filter protected internal headers (edit log, last edited by, admin notes) from public view unless admin token is validated
+    const isProtectedHeader = (h) => {
+      const low = h.toLowerCase();
+      return low === "edit log" || low === "last edited by" || low.includes("admin notes") || isSensitiveHeader(h);
+    };
+
+    const activeHeaders = headers.filter(h => h && !isSensitiveHeader(h) && (isAdmin || !isProtectedHeader(h)));
+    
     if (lastRow <= 1) {
-      return { headers: headers.filter(h => h), data: [] };
+      return { headers: activeHeaders, data: [], isAdmin: isAdmin };
     }
     
     // Find an ID column if exists
@@ -197,9 +397,10 @@ function getProjects() {
       // Provide an internal tracking ID even if the user has no ID column
       obj._internal_id = (idIdx !== -1 && row[idIdx]) ? row[idIdx] : "ROW-" + (rowIndex + 2);
       
-      headers.forEach((h, i) => {
-        if (h) {
-          let val = row[i];
+      activeHeaders.forEach((h) => {
+        const colIdx = headers.indexOf(h);
+        if (colIdx !== -1) {
+          let val = row[colIdx];
           if (val instanceof Date) {
             val = val.toISOString(); // Fix Apps Script serialization crash
           }
@@ -209,7 +410,7 @@ function getProjects() {
       return obj;
     });
     
-    return { headers: headers.filter(h => h), data: data };
+    return { headers: activeHeaders, data: data, isAdmin: isAdmin };
   } catch (error) {
     throw new Error("Failed to load systems: " + error.toString());
   }
@@ -264,7 +465,7 @@ function uploadBase64ToDrive(base64Data, filename) {
 /**
  * Save or update a project row
  */
-function saveProject(project, adminPasscode) {
+function saveProject(project, tokenOrPasscode) {
   try {
     // Intercept base64 images and upload to Drive
     Object.keys(project).forEach(k => {
@@ -284,8 +485,16 @@ function saveProject(project, adminPasscode) {
     
     let headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
     
-    // Dynamically append any missing headers (e.g. from new Edit features)
-    const incomingKeys = Object.keys(project).filter(k => k !== '_internal_id' && k !== '');
+    // Security: Filter out internal and sensitive keys so they NEVER become headers or cells in Google Sheet
+    const SENSITIVE_KEY_PATTERNS = ["_internal_id", "token", "passcode", "password", "secret", "credential", "auth"];
+    const isSensitiveField = (k) => {
+      if (!k) return true;
+      const lower = k.toString().toLowerCase().trim();
+      return SENSITIVE_KEY_PATTERNS.some(p => lower.includes(p));
+    };
+
+    // Dynamically append any missing headers (excluding sensitive fields)
+    const incomingKeys = Object.keys(project).filter(k => k && k !== '_internal_id' && !isSensitiveField(k));
     let hasNewHeaders = false;
     incomingKeys.forEach(k => {
        if (!headers.includes(k) && !headers.some(h => h.toLowerCase() === k.toLowerCase())) {
@@ -320,14 +529,14 @@ function saveProject(project, adminPasscode) {
     
     if (targetRow !== -1) {
       // Modifying an existing row: MUST BE AUTHENTICATED
-      if (!verifyAdmin(adminPasscode)) {
-        throw new Error("Unauthorized action. Administrator passcode is required to modify existing projects.");
+      if (!verifyAdminOrToken(tokenOrPasscode)) {
+        throw new Error("Unauthorized action. Valid administrator session required to modify existing projects.");
       }
 
       // Edit existing row
       headers.forEach((h, i) => {
-        // If the header exists and we have data for it, update it (or clear it)
-        if (h && typeof project[h] !== 'undefined') {
+        // If the header exists, is not sensitive, and we have data for it, update it
+        if (h && !isSensitiveField(h) && typeof project[h] !== 'undefined') {
            let val = project[h];
            
            // Special handling for the rolling edit log
@@ -352,7 +561,7 @@ function saveProject(project, adminPasscode) {
       headers.forEach((h, i) => {
          if (idIdx === i) {
             newRow[i] = internalId;
-         } else if (h && typeof project[h] !== 'undefined') {
+         } else if (h && !isSensitiveField(h) && typeof project[h] !== 'undefined') {
             newRow[i] = project[h];
          }
          
@@ -373,9 +582,9 @@ function saveProject(project, adminPasscode) {
 /**
  * Delete a project row by ID dynamically
  */
-function deleteProject(internalId, passcode) {
-  if (!verifyAdmin(passcode)) {
-    throw new Error("Unauthorized action. Invalid admin passcode.");
+function deleteProject(internalId, tokenOrPasscode) {
+  if (!verifyAdminOrToken(tokenOrPasscode)) {
+    throw new Error("Unauthorized action. Valid administrator session required to delete projects.");
   }
   
   try {
@@ -415,7 +624,7 @@ function deleteProject(internalId, passcode) {
  */
 function verifyAdmin(passcode) {
   if (!passcode) return false;
-  return String(passcode).trim() === String(ADMIN_PASSCODE).trim();
+  return hashPasscode(passcode) === getAdminPasscodeHash();
 }
 
 /**
@@ -581,9 +790,9 @@ function addComment(internalId, commentData) {
 /**
  * Delete a specific comment from a project (Admin only)
  */
-function deleteComment(internalId, timestamp, text, passcode) {
-  if (!verifyAdmin(passcode)) {
-    throw new Error("Unauthorized action. Invalid admin passcode.");
+function deleteComment(internalId, timestamp, text, tokenOrPasscode) {
+  if (!verifyAdminOrToken(tokenOrPasscode)) {
+    throw new Error("Unauthorized action. Valid administrator session required to delete comments.");
   }
   
   const sheet = getSheet();

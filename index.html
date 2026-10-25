@@ -1242,52 +1242,54 @@
     let headersList = [];
     let selectedAdminCategory = "all";
 
-    // Encapsulated Admin Security Module (Private closure - not exposed on window)
+    // Encapsulated Admin Security Module (Private closure - token-based session)
     const AdminAuth = (function() {
-      let _passcode = "";
+      let _sessionToken = "";
       let _authenticated = false;
       let _failedAttempts = 0;
       let _lockoutUntil = 0;
 
       // Try restoring valid session from sessionStorage
       try {
-        const saved = sessionStorage.getItem("_lab305_admin_session");
+        const saved = sessionStorage.getItem("_lab305_admin_token");
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed && parsed.expiry && Date.now() < parsed.expiry && parsed.token) {
-            _passcode = atob(parsed.token);
+            _sessionToken = parsed.token;
             _authenticated = true;
           } else {
-            sessionStorage.removeItem("_lab305_admin_session");
+            sessionStorage.removeItem("_lab305_admin_token");
           }
         }
       } catch(e) {}
 
       return {
         isAuthenticated: function() {
-          return _authenticated && Boolean(_passcode);
+          return _authenticated && Boolean(_sessionToken);
         },
-        getPasscode: function() {
+        getToken: function() {
           if (!_authenticated) return "";
-          return _passcode;
+          return _sessionToken;
         },
-        login: function(passcode, hours = 4) {
-          _passcode = String(passcode).trim();
+        login: function(token, expiresIn = 14400) {
+          _sessionToken = String(token).trim();
           _authenticated = true;
           _failedAttempts = 0;
           try {
-            sessionStorage.setItem("_lab305_admin_session", JSON.stringify({
-              token: btoa(_passcode),
-              expiry: Date.now() + (hours * 60 * 60 * 1000)
+            sessionStorage.setItem("_lab305_admin_token", JSON.stringify({
+              token: _sessionToken,
+              expiry: Date.now() + (expiresIn * 1000)
             }));
           } catch(e) {}
         },
         logout: function() {
-          _passcode = "";
+          const oldToken = _sessionToken;
+          _sessionToken = "";
           _authenticated = false;
           try {
-            sessionStorage.removeItem("_lab305_admin_session");
+            sessionStorage.removeItem("_lab305_admin_token");
           } catch(e) {}
+          return oldToken;
         },
         recordFailure: function() {
           _failedAttempts++;
@@ -1366,8 +1368,15 @@
     }
 
     window.lockAdminMode = function() {
-      AdminAuth.logout();
+      const token = AdminAuth.logout();
       unmountAdminDashboard();
+      if (token && SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'logout', authToken: token })
+        }).catch(() => {});
+      }
+      fetchAllProjects(); // refetch public data without token, wiping protected fields
       showToast(t("toast_locked"));
     };
 
@@ -1460,11 +1469,13 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    function fetchAllProjects() {
+    function fetchAllProjects(customToken) {
       toggleLoading(true, t("fetching"));
+      const token = customToken || AdminAuth.getToken();
+      const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
       
       if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
-        fetch(`${SCRIPT_URL}?api=true`)
+        fetch(`${SCRIPT_URL}?api=true${tokenParam}`)
           .then(res => res.json())
           .then(response => {
             if (response.error) throw new Error(response.error);
@@ -1495,7 +1506,7 @@
             toggleLoading(false);
             alert("Database Error: " + err.message);
           })
-          .getProjects();
+          .getProjects(token);
       } else {
         toggleLoading(false);
         console.warn("SCRIPT_URL not set and google.script not available.");
@@ -1657,12 +1668,13 @@
 
       toggleLoading(true, t("verifying"));
       
-      const handleLoginSuccess = () => {
-        AdminAuth.login(inputVal);
+      const handleLoginSuccess = (token, expiresIn) => {
+        AdminAuth.login(token, expiresIn);
         inputEl.value = "";
         document.getElementById("adminAuthBox").style.display = "none";
         mountAdminDashboard();
         showToast(t("toast_admin"));
+        fetchAllProjects(token);
       };
 
       const handleLoginFail = () => {
@@ -1678,13 +1690,13 @@
       if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
         fetch(SCRIPT_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'verify', passcode: inputVal })
+          body: JSON.stringify({ action: 'login', passcode: inputVal })
         })
         .then(res => res.json())
         .then(data => {
           toggleLoading(false);
-          if (data && data.isValid) {
-            handleLoginSuccess();
+          if (data && data.isValid && data.token) {
+            handleLoginSuccess(data.token, data.expiresIn || 14400);
           } else {
             handleLoginFail();
           }
@@ -1695,10 +1707,12 @@
         });
       } else if (typeof google !== 'undefined' && google.script) {
         google.script.run
-          .withSuccessHandler(function(isValid) {
+          .withSuccessHandler(function(res) {
             toggleLoading(false);
-            if (isValid) {
-              handleLoginSuccess();
+            if (res && res.isValid && res.token) {
+              handleLoginSuccess(res.token, res.expiresIn || 14400);
+            } else if (res === true) {
+              handleLoginSuccess("session-" + Date.now(), 14400);
             } else {
               handleLoginFail();
             }
@@ -2044,9 +2058,9 @@
         return;
       }
 
-      const passcode = AdminAuth.getPasscode();
-      if (!passcode) {
-        alert("Access Denied: Missing admin credentials.");
+      const token = AdminAuth.getToken();
+      if (!token) {
+        alert("Access Denied: Missing admin session.");
         return;
       }
 
@@ -2055,13 +2069,13 @@
       if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
         fetch(SCRIPT_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'delete', internalId: internalId, adminPasscode: passcode })
+          body: JSON.stringify({ action: 'delete', internalId: internalId, authToken: token })
         })
         .then(res => res.json())
         .then(data => {
           if (!data.success) throw new Error(data.error);
           showToast(t("toast_delete"));
-          fetchAllProjects();
+          fetchAllProjects(token);
         })
         .catch(err => {
           toggleLoading(false);
@@ -2071,13 +2085,13 @@
         google.script.run
           .withSuccessHandler(function(response) {
             showToast(t("toast_delete"));
-            fetchAllProjects();
+            fetchAllProjects(token);
           })
           .withFailureHandler(function(err) {
             toggleLoading(false);
             alert("Delete Failed: " + err.message);
           })
-          .deleteProject(internalId, passcode);
+          .deleteProject(internalId, token);
       }
     };
 
@@ -2248,14 +2262,38 @@
       });
     }
 
-    window.deleteComment = function(internalId, timestamp, textEncoded) {
+    window.deleteComment = async function(internalId, timestamp, textEncoded) {
       const commentText = decodeURIComponent(textEncoded || "");
-      let passcode = AdminAuth.getPasscode();
-      if (!passcode) {
-        passcode = prompt(t("admin_ph"));
+      let token = AdminAuth.getToken();
+      
+      // If not currently authenticated, authenticate with passcode to obtain session token
+      if (!token) {
+        const passcode = prompt(t("admin_ph"));
         if (!passcode) return;
+        
+        toggleLoading(true, t("verifying"));
+        try {
+          if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
+            const authRes = await fetch(SCRIPT_URL, {
+              method: 'POST',
+              body: JSON.stringify({ action: 'login', passcode: passcode.trim() })
+            }).then(r => r.json());
+            
+            toggleLoading(false);
+            if (authRes && authRes.isValid && authRes.token) {
+              token = authRes.token;
+              AdminAuth.login(token, authRes.expiresIn || 14400);
+            } else {
+              alert(t("err_passcode"));
+              return;
+            }
+          }
+        } catch(e) {
+          toggleLoading(false);
+          alert("Authentication failed: " + e.message);
+          return;
+        }
       }
-      passcode = String(passcode).trim();
       
       if (!confirm(t("fb_del_confirm"))) return;
       
@@ -2264,7 +2302,7 @@
         internalId: internalId,
         commentTimestamp: timestamp,
         commentText: commentText,
-        adminPasscode: passcode
+        authToken: token
       };
       
       const handleSuccess = function() {
@@ -2309,7 +2347,7 @@
              if (res && res.error) alert(res.error);
              else handleSuccess();
           })
-          .deleteComment(internalId, timestamp, commentText, passcode);
+          .deleteComment(internalId, timestamp, commentText, token);
       }
     };
 
@@ -2549,9 +2587,9 @@
         return;
       }
 
-      const adminPasscode = AdminAuth.getPasscode();
-      if (!adminPasscode) {
-        alert("Access Denied: Missing administrator credentials.");
+      const token = AdminAuth.getToken();
+      if (!token) {
+        alert("Access Denied: Missing administrator session.");
         return;
       }
 
@@ -2561,13 +2599,13 @@
       if (SCRIPT_URL !== "YOUR_WEB_APP_URL_HERE") {
         fetch(SCRIPT_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'save', data: projectData, adminPasscode: adminPasscode })
+          body: JSON.stringify({ action: 'save', data: projectData, authToken: token })
         })
         .then(res => res.json())
         .then(data => {
           if (!data.success) throw new Error(data.error);
           showToast(t("toast_save"));
-          fetchAllProjects();
+          fetchAllProjects(token);
         })
         .catch(err => {
           toggleLoading(false);
@@ -2577,13 +2615,13 @@
         google.script.run
           .withSuccessHandler(function() {
             showToast(t("toast_save"));
-            fetchAllProjects();
+            fetchAllProjects(token);
           })
           .withFailureHandler(function(err) {
             toggleLoading(false);
             alert("Save Failed: " + err.message);
           })
-          .saveProject(projectData, adminPasscode);
+          .saveProject(projectData, token);
       }
     });
 
